@@ -425,6 +425,12 @@ struct hc_driver {
 	int (*get_core_id)(struct usb_hcd *hcd);
 	int (*stop_endpoint)(struct usb_hcd *hcd, struct usb_device *udev,
 			struct usb_host_endpoint *ep);
+	dma_addr_t (*get_sec_event_ring_dma_addr)(struct usb_hcd *hcd,
+			unsigned intr_num);
+	dma_addr_t (*get_xfer_ring_dma_addr)(struct usb_hcd *hcd,
+			struct usb_device *udev, struct usb_host_endpoint *ep);
+	dma_addr_t (*get_dcba_dma_addr)(struct usb_hcd *hcd,
+			struct usb_device *udev);
 };
 
 static inline int hcd_giveback_urb_in_bh(struct usb_hcd *hcd)
@@ -473,6 +479,13 @@ extern phys_addr_t usb_hcd_get_xfer_ring_phys_addr(
 	struct usb_device *udev, struct usb_host_endpoint *ep, dma_addr_t *dma);
 extern int usb_hcd_get_controller_id(struct usb_device *udev);
 extern int usb_hcd_stop_endpoint(struct usb_device *udev,
+	struct usb_host_endpoint *ep);
+extern dma_addr_t
+usb_hcd_get_sec_event_ring_dma_addr(struct usb_device *udev,
+		unsigned intr_num);
+extern dma_addr_t usb_hcd_get_dcba_dma_addr(struct usb_device *udev);
+extern dma_addr_t
+usb_hcd_get_xfer_ring_dma_addr(struct usb_device *udev,
 	struct usb_host_endpoint *ep);
 
 struct usb_hcd *__usb_create_hcd(const struct hc_driver *driver,

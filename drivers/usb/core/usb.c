@@ -960,6 +960,37 @@ int usb_stop_endpoint(struct usb_device *dev, struct usb_host_endpoint *ep)
 }
 EXPORT_SYMBOL(usb_stop_endpoint);
 
+dma_addr_t
+usb_get_sec_event_ring_dma_addr(struct usb_device *dev,
+	unsigned intr_num)
+{
+	if (dev->state == USB_STATE_NOTATTACHED)
+		return 0;
+
+	return usb_hcd_get_sec_event_ring_dma_addr(dev, intr_num);
+}
+EXPORT_SYMBOL(usb_get_sec_event_ring_dma_addr);
+
+dma_addr_t
+usb_get_dcba_dma_addr(struct usb_device *dev)
+{
+	if (dev->state == USB_STATE_NOTATTACHED)
+		return 0;
+
+	return usb_hcd_get_dcba_dma_addr(dev);
+}
+EXPORT_SYMBOL(usb_get_dcba_dma_addr);
+
+dma_addr_t usb_get_xfer_ring_dma_addr(struct usb_device *dev,
+	struct usb_host_endpoint *ep)
+{
+	if (dev->state == USB_STATE_NOTATTACHED)
+		return 0;
+
+	return usb_hcd_get_xfer_ring_dma_addr(dev, ep);
+}
+EXPORT_SYMBOL(usb_get_xfer_ring_dma_addr);
+
 /*-------------------------------------------------------------------*/
 /*
  * __usb_get_extra_descriptor() finds a descriptor of specific type in the
