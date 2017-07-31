@@ -11,6 +11,9 @@
 #include <linux/qpnp/qpnp-revid.h>
 #include <linux/irq.h>
 #include <linux/pmic-voter.h>
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
 #include "smb-lib.h"
 #include "smb-reg.h"
 #include "battery.h"
@@ -31,10 +34,10 @@
 #include <linux/fcntl.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-
 #define	START_REPORT_BAT_TEMPRATURE	620
 #endif
 
+#ifdef DEBUG
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
 		__func__, ##__VA_ARGS__)	\
@@ -48,6 +51,10 @@
 			pr_debug("%s: %s: " fmt, chg->name,	\
 				__func__, ##__VA_ARGS__);	\
 	} while (0)
+#else
+#define smblib_err(chg, fmt, ...) ((void)0)
+#define smblib_dbg(chg, reason, fmt, ...) ((void)0)
+#endif
 
 #ifdef CONFIG_MACH_ASUS_SDM660
 #define CHARGER_TAG "[BAT][CHG]"
@@ -948,6 +955,13 @@ static int set_sdp_current(struct smb_charger *chg, int icl_ua)
 	int rc;
 	u8 icl_options;
 	const struct apsd_result *apsd_result = smblib_get_apsd_result(chg);
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if (force_fast_charge > 0 && icl_ua == USBIN_500MA)
+	{
+		icl_ua = USBIN_900MA;
+	}
+#endif
 
 	/* power source is SDP */
 	switch (icl_ua) {
