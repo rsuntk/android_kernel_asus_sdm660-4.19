@@ -363,8 +363,7 @@ static int enable_lmh(struct device_node *dn)
 		return ret;
 	}
 
-	if (of_property_read_bool(dn, "qcom,legacy-lmh-enable"))
-		lmh_enabled = true;
+	lmh_enabled = true;
 
 	return ret;
 }
