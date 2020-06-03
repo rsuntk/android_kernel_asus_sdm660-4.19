@@ -325,7 +325,7 @@ extern int stack_tracer_enabled;
 void stack_trace_print(void);
 int
 stack_trace_sysctl(struct ctl_table *table, int write,
-		   void __user *buffer, size_t *lenp,
+		   void *buffer, size_t *lenp,
 		   loff_t *ppos);
 
 /* DO NOT MODIFY THIS VARIABLE DIRECTLY! */
