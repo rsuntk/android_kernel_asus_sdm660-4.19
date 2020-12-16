@@ -904,8 +904,15 @@ static const struct memdev {
 	 [8] = { "random", 0666, &urandom_fops, FMODE_NOWAIT },
 	 [9] = { "urandom", 0666, &urandom_fops, FMODE_NOWAIT },
 #endif
+#ifndef CONFIG_HW_RANDOM
+#ifdef CONFIG_SRANDOM
+	 [10] = { "hw_random", 0666, &sfops, 0 },
+#else
+	 [10] = { "hw_random", 0666, &urandom_fops, 0 },
+#endif
+#endif
 #ifdef CONFIG_PRINTK
-	[11] = { "kmsg", 0644, &kmsg_fops, 0 },
+	 [11] = { "kmsg", 0644, &kmsg_fops, 0 },
 #endif
 };
 
