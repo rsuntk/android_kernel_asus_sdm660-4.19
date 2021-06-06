@@ -70,6 +70,10 @@
 			debounce-interval = <15>;
 		};
 	};
+
+	qcom,msm_fastrpc {
+		/delete-property/ qcom,fastrpc-adsp-sensors-pdr;
+	};
 };
 
 &thermal_zones {
