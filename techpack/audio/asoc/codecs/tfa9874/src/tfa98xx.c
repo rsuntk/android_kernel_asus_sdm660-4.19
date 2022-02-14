@@ -288,7 +288,7 @@ static void __tfa98xx_inputdev_check_register(struct tfa98xx *tfa98xx, bool unre
 		if (strstr(tfa_cont_profile_name(tfa98xx, i), ".tap")) {
 			tap_profile = true;
 			tfa98xx->tapdet_profiles |= 1 << i;
-			dev_info(tfa98xx->component->dev,
+			dev_dbg(tfa98xx->component->dev,
 				"found a tap-detection profile (%d - %s)\n",
 				i, tfa_cont_profile_name(tfa98xx, i));
 		}
@@ -311,7 +311,7 @@ static void __tfa98xx_inputdev_check_register(struct tfa98xx *tfa98xx, bool unre
 
 	/* input device required */
 	if (tfa98xx->input)
-		dev_info(tfa98xx->component->dev, "Input device already registered, skipping\n");
+		dev_dbg(tfa98xx->component->dev, "Input device already registered, skipping\n");
 	else
 		tfa98xx_register_inputdev(tfa98xx);
 }
@@ -2230,14 +2230,14 @@ static void tfa98xx_container_loaded(const struct firmware *cont, void *context)
 			if (strcmp(tfa_cont_profile_name(tfa98xx, i),
 							dflt_prof_name) == 0) {
 				tfa98xx->profile = i;
-				dev_info(tfa98xx->dev,
+				dev_dbg(tfa98xx->dev,
 					"changing default profile to %s (%d)\n",
 					dflt_prof_name, tfa98xx->profile);
 				break;
 			}
 		}
 		if (i >= nprof)
-			dev_info(tfa98xx->dev,
+			dev_dbg(tfa98xx->dev,
 				"Default profile override failed (%s profile not found)\n",
 				dflt_prof_name);
 	}
@@ -2544,7 +2544,7 @@ static int tfa98xx_startup(struct snd_pcm_substream *substream,
 		return 0;
 
 	if (tfa98xx->dsp_fw_state != TFA98XX_DSP_FW_OK) {
-		dev_info(component->dev, "Container file not loaded (state=%d)\n",
+		dev_dbg(component->dev, "Container file not loaded (state=%d)\n",
 		         tfa98xx->dsp_fw_state);
 		return -EINVAL;
 	}
@@ -2570,7 +2570,7 @@ static int tfa98xx_startup(struct snd_pcm_substream *substream,
 			 */
 			sr = tfa98xx_get_profile_sr(tfa98xx->tfa, prof);
 			if (!sr)
-				dev_info(component->dev, "Unable to identify supported sample rate\n");
+				dev_dbg(component->dev, "Unable to identify supported sample rate\n");
 
 			if (tfa98xx->rate_constraint.count >= TFA98XX_NUM_RATES) {
 				dev_err(component->dev, "too many sample rates\n");
@@ -2872,7 +2872,7 @@ static int tfa98xx_probe(struct snd_soc_component *component)
 #endif
 	tfa98xx_add_widgets(tfa98xx);
 
-	dev_info(component->dev, "tfa98xx component registered (%s)",
+	dev_dbg(component->dev, "tfa98xx component registered (%s)",
 							tfa98xx->fw.name);
 
 	return ret;
@@ -3165,7 +3165,7 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 				ret);
 			return -EIO;
 		}
-		dev_info(&i2c->dev, "TFA REVID:0x%04X", reg);
+		dev_dbg(&i2c->dev, "TFA REVID:0x%04X", reg);
 		switch (reg & 0xff) {
 		case 0x72: /* tfa9872 */
 			pr_info("TFA9872 detected\n");
@@ -3280,7 +3280,7 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 			return ret;
 		}
 	} else {
-		dev_info(&i2c->dev, "Skipping IRQ registration\n");
+		dev_dbg(&i2c->dev, "Skipping IRQ registration\n");
 		/* disable feature support if gpio was invalid */
 		tfa98xx->flags |= TFA98XX_FLAG_SKIP_INTERRUPTS;
 	}
@@ -3292,10 +3292,10 @@ static int tfa98xx_i2c_probe(struct i2c_client *i2c,
 	/* Register the sysfs files for climax backdoor access */
 	ret = device_create_bin_file(&i2c->dev, &dev_attr_rw);
 	if (ret)
-		dev_info(&i2c->dev, "error creating sysfs files\n");
+		dev_dbg(&i2c->dev, "error creating sysfs files\n");
 	ret = device_create_bin_file(&i2c->dev, &dev_attr_reg);
 	if (ret)
-		dev_info(&i2c->dev, "error creating sysfs files\n");
+		dev_dbg(&i2c->dev, "error creating sysfs files\n");
 
 	pr_info("%s Probe completed successfully!\n", __func__);
 
