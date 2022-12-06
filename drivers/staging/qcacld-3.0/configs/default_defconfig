@@ -78,7 +78,7 @@ endif
 DEVELOPER_DISABLE_BUILD_TIMESTAMP := y
 ifneq ($(DEVELOPER_DISABLE_BUILD_TIMESTAMP), y)
 ifneq ($(WLAN_DISABLE_BUILD_TAG), y)
-CONFIG_BUILD_TAG := n
+CONFIG_BUILD_TAG := y
 endif
 endif
 
@@ -430,9 +430,9 @@ endif
 
 # Compile all log levels by default
 CONFIG_WLAN_LOG_FATAL := y
-CONFIG_WLAN_LOG_ERROR := y
-CONFIG_WLAN_LOG_WARN := y
-CONFIG_WLAN_LOG_INFO := y
+CONFIG_WLAN_LOG_ERROR := n
+CONFIG_WLAN_LOG_WARN := n
+CONFIG_WLAN_LOG_INFO := n
 
 #Enable OL debug and wmi unified functions
 CONFIG_ATH_PERF_PWR_OFFLOAD := y
