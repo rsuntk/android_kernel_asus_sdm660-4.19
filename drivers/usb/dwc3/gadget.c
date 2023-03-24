@@ -150,10 +150,10 @@ int dwc3_gadget_set_link_state(struct dwc3 *dwc, enum dwc3_link_state state)
  * if it is point to the link TRB, wrap around to the beginning. The
  * link TRB is always at the last TRB entry.
  */
-static void dwc3_ep_inc_trb(u8 *index)
+static void dwc3_ep_inc_trb(struct dwc3_ep *dep, u8 *index)
 {
 	(*index)++;
-	if (*index == (DWC3_TRB_NUM - 1))
+	if (*index == (dep->num_trbs - 1))
 		*index = 0;
 }
 
@@ -163,7 +163,7 @@ static void dwc3_ep_inc_trb(u8 *index)
  */
 void dwc3_ep_inc_enq(struct dwc3_ep *dep)
 {
-	dwc3_ep_inc_trb(&dep->trb_enqueue);
+	dwc3_ep_inc_trb(dep, &dep->trb_enqueue);
 }
 
 /**
@@ -172,7 +172,7 @@ void dwc3_ep_inc_enq(struct dwc3_ep *dep)
  */
 void dwc3_ep_inc_deq(struct dwc3_ep *dep)
 {
-	dwc3_ep_inc_trb(&dep->trb_dequeue);
+	dwc3_ep_inc_trb(dep, &dep->trb_dequeue);
 }
 
 /*
@@ -897,10 +897,6 @@ static void dwc3_stop_active_transfers(struct dwc3 *dwc)
 		if (!(dep->flags & DWC3_EP_ENABLED))
 			continue;
 
-		if (dep->endpoint.ep_type == EP_TYPE_GSI && dep->direction)
-			dwc3_notify_event(dwc,
-				DWC3_CONTROLLER_NOTIFY_CLEAR_DB, 0);
-
 		dwc3_remove_requests(dwc, dep);
 		if (dep->endpoint.ep_type != EP_TYPE_GSI &&
 					!dep->endpoint.endless) {
@@ -912,6 +908,8 @@ static void dwc3_stop_active_transfers(struct dwc3 *dwc)
 			}
 		}
 	}
+	dwc3_notify_event(dwc,
+			DWC3_CONTROLLER_NOTIFY_CLEAR_DB, 0);
 	dbg_log_string("DONE");
 }
 
