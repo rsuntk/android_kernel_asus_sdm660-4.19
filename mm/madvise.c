@@ -313,6 +313,7 @@ static int madvise_cold_or_pageout_pte_range(pmd_t *pmd,
 	pte_t *orig_pte, *pte, ptent;
 	spinlock_t *ptl;
 	struct page *page = NULL;
+	unsigned int batch_count = 0;
 	LIST_HEAD(page_list);
 
 	if (fatal_signal_pending(current))
@@ -389,11 +390,21 @@ regular_page:
 		return 0;
 #endif
 	tlb_change_page_size(tlb, PAGE_SIZE);
+restart:
 	orig_pte = pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr < end; pte++, addr += PAGE_SIZE) {
 		ptent = *pte;
+
+		if (++batch_count == SWAP_CLUSTER_MAX) {
+			batch_count = 0;
+			if (need_resched()) {
+				pte_unmap_unlock(orig_pte, ptl);
+				cond_resched();
+				goto restart;
+			}
+		}
 
 		if (pte_none(ptent))
 			continue;
