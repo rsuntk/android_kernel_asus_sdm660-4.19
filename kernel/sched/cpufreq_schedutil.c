@@ -295,7 +295,7 @@ static inline unsigned long sugov_apply_dvfs_headroom(unsigned long util, int cp
 	 *   decay  = h_max + util - approx  (= util * alpha)
 	 *   headroom = growth - decay
 	 */
-	cap    = arch_scale_cpu_capacity(cpu);
+	cap = arch_scale_cpu_capacity(cpu);
 	growth = mult_frac(h_max, cap, SCHED_CAPACITY_SCALE);
 	decay  = h_max + util - approx;
 
