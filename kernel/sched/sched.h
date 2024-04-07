@@ -330,6 +330,18 @@ struct dl_bw {
 	u64			total_bw;
 };
 
+unsigned long approximate_util_avg(unsigned long util, u64 delta);
+u64 approximate_runtime(unsigned long util);
+
+/*
+ * Any governor that relies on util signal to drive DVFS, must populate these
+ * percpu dvfs_update_delay variables.
+ *
+ * It should describe the rate/delay at which the governor sends DVFS freq
+ * update to the hardware in us.
+ */
+DECLARE_PER_CPU_READ_MOSTLY(u64, dvfs_update_delay);
+
 static inline
 void __dl_sub(struct dl_bw *dl_b, u64 tsk_bw, int cpus)
 {
@@ -352,6 +364,7 @@ static inline bool __dl_overflow(struct dl_bw *dl_b, unsigned long cap,
 }
 
 extern void dl_change_utilization(struct task_struct *p, u64 new_bw);
+
 extern void init_dl_bw(struct dl_bw *dl_b);
 extern int  sched_dl_global_validate(void);
 extern void sched_dl_do_global(void);
@@ -363,8 +376,6 @@ extern bool dl_param_changed(struct task_struct *p, const struct sched_attr *att
 extern int  dl_task_can_attach(struct task_struct *p, const struct cpumask *cs_cpus_allowed);
 extern int  dl_cpuset_cpumask_can_shrink(const struct cpumask *cur, const struct cpumask *trial);
 extern bool dl_cpu_busy(unsigned int cpu);
-unsigned long approximate_util_avg(unsigned long util, u64 delta);
-u64 approximate_runtime(unsigned long util);
 
 #ifdef CONFIG_CGROUP_SCHED
 
