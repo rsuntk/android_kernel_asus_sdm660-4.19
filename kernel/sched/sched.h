@@ -331,6 +331,15 @@ struct dl_bw {
 };
 
 /*
+ * Any governor that relies on util signal to drive DVFS, must populate these
+ * percpu dvfs_update_delay variables.
+ *
+ * It should describe the rate/delay at which the governor sends DVFS freq
+ * update to the hardware in us.
+ */
+DECLARE_PER_CPU_READ_MOSTLY(u64, dvfs_update_delay);
+
+/*
  * Verify the fitness of task @p to run on @cpu taking into account the
  * CPU original capacity and the runtime/deadline ratio of the task.
  *
@@ -346,6 +355,7 @@ static inline bool dl_task_fits_capacity(struct task_struct *p, int cpu)
 }
 
 extern void dl_change_utilization(struct task_struct *p, u64 new_bw);
+
 extern void init_dl_bw(struct dl_bw *dl_b);
 extern int  sched_dl_global_validate(void);
 extern void sched_dl_do_global(void);
