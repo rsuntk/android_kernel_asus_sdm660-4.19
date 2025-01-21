@@ -1101,11 +1101,11 @@ alternative_endif
 	.endm
 
 #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
-	/*
-	 * Exception vectors trampoline.
-	 * The order must match __bp_harden_el1_vectors and the
-	 * arm64_bp_harden_el1_vectors enum.
-	 */
+/*
+ * Exception vectors trampoline.
+ * The order must match __bp_harden_el1_vectors and the
+ * arm64_bp_harden_el1_vectors enum.
+ */
 	.pushsection ".entry.tramp.text", "ax"
 	.align	11
 ENTRY(tramp_vectors)
@@ -1138,7 +1138,7 @@ __entry_tramp_data_vectors:
 __entry_tramp_data___sdei_asm_handler:
 	.quad	__sdei_asm_handler
 #endif /* CONFIG_ARM_SDE_INTERFACE */
-	__entry_tramp_data_this_cpu_vector:
+__entry_tramp_data_this_cpu_vector:
 	.quad	this_cpu_vector
 	.popsection				// .rodata
 #endif /* CONFIG_RANDOMIZE_BASE */
@@ -1168,6 +1168,7 @@ __entry_tramp_data___sdei_asm_handler:
 	tramp_ventry	.Lvector_start\@, 32, 0, \bhb
 	.endr
 	.endm
+
 /* The order must match tramp_vecs and the arm64_bp_harden_el1_vectors enum. */
 	.pushsection ".entry.text", "ax"
 	.align	11

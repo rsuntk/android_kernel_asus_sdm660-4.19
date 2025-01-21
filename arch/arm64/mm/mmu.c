@@ -617,7 +617,6 @@ static int __init map_entry_trampoline(void)
 	for (i = 0; i < DIV_ROUND_UP(entry_tramp_text_size(), PAGE_SIZE); i++)
 		__set_fixmap(FIX_ENTRY_TRAMP_TEXT1 - i,
 				pa_start + i * PAGE_SIZE, prot);
-
 	if (IS_ENABLED(CONFIG_RANDOMIZE_BASE)) {
 		extern char __entry_tramp_data_start[];
 
@@ -1373,11 +1372,6 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 			       round_up(offset + *size, SWAPPER_BLOCK_SIZE), prot);
 
 	return dt_virt;
-}
-
-int __init arch_ioremap_p4d_supported(void)
-{
-	return 0;
 }
 
 int __init arch_ioremap_pud_supported(void)
