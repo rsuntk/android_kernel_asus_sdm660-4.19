@@ -1984,7 +1984,7 @@ static void qcom_batt_create_debugfs(struct pl_data *chip)
 }
 #endif
 
-#define DEFAULT_RESTRICTED_CURRENT_UA	1000000
+#define DEFAULT_RESTRICTED_CURRENT_UA	1500000
 int qcom_batt_init(struct charger_param *chg_param)
 {
 	struct pl_data *chip;
