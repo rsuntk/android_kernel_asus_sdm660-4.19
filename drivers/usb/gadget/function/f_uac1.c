@@ -25,7 +25,6 @@
 static int generic_set_cmd(struct usb_audio_control *con, u8 cmd, int value);
 static int generic_get_cmd(struct usb_audio_control *con, u8 cmd);
 
-
 struct f_uac1 {
 	struct g_audio g_audio;
 	u8 ac_intf, as_in_intf, as_out_intf;
@@ -775,7 +774,6 @@ static void f_audio_disable(struct usb_function *f)
 
 	u_audio_stop_playback(&uac1->g_audio);
 	u_audio_stop_capture(&uac1->g_audio);
-	u_audio_stop_playback(&uac1->g_audio);
 }
 
 /*-------------------------------------------------------------------------*/

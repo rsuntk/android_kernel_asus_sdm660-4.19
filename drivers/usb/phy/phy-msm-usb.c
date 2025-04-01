@@ -107,7 +107,9 @@ enum msm_usb_phy_type {
 	QUSB_ULPI_PHY,
 };
 
-#define IDEV_CHG_MAX	1500
+#define IDEV_CHG_MAX_DEFAULT_VALUE 1500
+static int idev_chg_max = IDEV_CHG_MAX_DEFAULT_VALUE;
+#define IDEV_CHG_MAX	idev_chg_max
 #define IUNIT		100
 #define IDEV_HVDCP_CHG_MAX	1800
 
@@ -312,7 +314,7 @@ static ssize_t debug_log_enable_store(struct device *dev,
 static DEVICE_ATTR_RW(debug_log_enable);
 
 /* Max current to be drawn for DCP charger */
-static int dcp_max_current = IDEV_CHG_MAX;
+static int dcp_max_current = IDEV_CHG_MAX_DEFAULT_VALUE;
 static ssize_t dcp_max_current_value_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -327,7 +329,6 @@ static ssize_t dcp_max_current_value_store(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR_RW(dcp_max_current_value);
-
 
 static bool chg_detection_for_float_charger;
 static ssize_t chg_detection_for_float_charger_value_show(struct device *dev,
@@ -2197,9 +2198,12 @@ static void msm_hsusb_vbus_power(struct msm_otg *motg, bool on)
 	if (vbus_is_on == on)
 		return;
 
-	if (!vbus_otg) {
-		pr_err("vbus_otg is NULL.\n");
-		return;
+	if (IS_ERR_OR_NULL(vbus_otg)) {
+		vbus_otg = devm_regulator_get(motg->phy.dev, "vbus_otg");
+		if (IS_ERR(vbus_otg)) {
+			dev_err(motg->phy.dev, "Unable to get vbus_otg\n");
+			return;
+		}
 	}
 
 	/*
@@ -2239,16 +2243,7 @@ static int msm_otg_set_host(struct usb_otg *otg, struct usb_bus *host)
 		return -ENODEV;
 	}
 
-	if (host) {
-		vbus_otg = devm_regulator_get(motg->phy.dev, "vbus_otg");
-		if (IS_ERR(vbus_otg)) {
-			msm_otg_dbg_log_event(&motg->phy,
-					"UNABLE TO GET VBUS_OTG",
-					otg->state, 0);
-			dev_err(otg->usb_phy->dev, "Unable to get vbus_otg\n");
-			return PTR_ERR(vbus_otg);
-		}
-	} else {
+	if (!host) {
 		if (otg->state == OTG_STATE_A_HOST) {
 			msm_otg_start_host(otg, 0);
 			otg->host = NULL;
