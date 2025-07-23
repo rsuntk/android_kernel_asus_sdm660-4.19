@@ -1,4 +1,22 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dbb19d4a_e011bd2b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4550
+      },
+      "writtenOn": "2025-07-23T16:02:59Z",
+      "side": 1,
+      "message": "Commit chain iss actually pushed but gerrit threw an error, so the changes don\u0027t show as merged",
+      "revId": "40be715cd738e9fe9d1298b1c20e070212adfa89",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ],
   "submitRequirementResults": []
 }
