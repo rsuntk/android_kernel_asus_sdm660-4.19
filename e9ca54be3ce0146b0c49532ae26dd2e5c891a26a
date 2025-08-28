@@ -16,6 +16,23 @@
       "message": "Tested on Xperia XA2 Plus (voyager), everything works as expected.",
       "revId": "e9ca54be3ce0146b0c49532ae26dd2e5c891a26a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1e50f6b4_7b399462",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4550
+      },
+      "writtenOn": "2025-08-28T20:08:21Z",
+      "side": 1,
+      "message": "I would exclude this commit for now but the rest below should be fine",
+      "revId": "e9ca54be3ce0146b0c49532ae26dd2e5c891a26a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
