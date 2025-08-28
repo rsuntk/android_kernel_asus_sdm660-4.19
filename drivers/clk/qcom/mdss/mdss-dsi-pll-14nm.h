@@ -194,7 +194,7 @@ int shadow_pll_vco_set_rate_14nm(struct clk_hw *hw, unsigned long rate,
 		unsigned long parent_rate);
 long pll_vco_round_rate_14nm(struct clk_hw *hw, unsigned long rate,
 		unsigned long *parent_rate);
-unsigned long pll_vco_recalc_rate_14nm(struct clk_hw *hw,
+unsigned long vco_14nm_recalc_rate(struct clk_hw *hw,
 		unsigned long parent_rate);
 
 int pll_vco_prepare_14nm(struct clk_hw *hw);
