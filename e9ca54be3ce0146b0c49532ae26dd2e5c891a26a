@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "776e26ae_1e5ed384",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 29578
+      },
+      "writtenOn": "2025-08-28T17:52:03Z",
+      "side": 1,
+      "message": "Tested on Xperia XA2 Plus (voyager), everything works as expected.",
+      "revId": "e9ca54be3ce0146b0c49532ae26dd2e5c891a26a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
