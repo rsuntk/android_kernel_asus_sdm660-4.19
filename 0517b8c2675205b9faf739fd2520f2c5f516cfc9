@@ -16,6 +16,24 @@
       "message": "Reason?",
       "revId": "0517b8c2675205b9faf739fd2520f2c5f516cfc9",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6dbd2cfe_969a196a",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 29578
+      },
+      "writtenOn": "2025-09-08T13:58:26Z",
+      "side": 1,
+      "message": "It helped with some splash issues we were seeing on nile/ganges. I can also try it on bq sdm636/660 if you’d like. I remember having splash issues there as well, while I was bringing up 4.19.",
+      "parentUuid": "fc1ab26b_533cc766",
+      "revId": "0517b8c2675205b9faf739fd2520f2c5f516cfc9",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
