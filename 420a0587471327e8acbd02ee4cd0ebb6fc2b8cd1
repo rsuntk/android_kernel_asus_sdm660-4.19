@@ -16,6 +16,24 @@
       "message": "You can skip this defconfig, only -perf one is maintained.",
       "revId": "420a0587471327e8acbd02ee4cd0ebb6fc2b8cd1",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e20424e1_fa35a4d2",
+        "filename": "arch/arm64/configs/vendor/sdm660_defconfig",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-09-08T12:55:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e116c01b_f959beeb",
+      "revId": "420a0587471327e8acbd02ee4cd0ebb6fc2b8cd1",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
