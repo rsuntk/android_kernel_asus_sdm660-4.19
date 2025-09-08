@@ -16,6 +16,24 @@
       "message": "Whitespace",
       "revId": "1024e03ada58c8207339b80e7efec7b6a1d37943",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c0e756ef_b6321714",
+        "filename": "arch/arm64/boot/dts/vendor/qcom/Makefile",
+        "patchSetId": 2
+      },
+      "lineNbr": 451,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2025-09-08T12:54:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2d3976f8_a446d69d",
+      "revId": "1024e03ada58c8207339b80e7efec7b6a1d37943",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
