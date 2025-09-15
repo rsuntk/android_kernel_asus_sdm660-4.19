@@ -452,7 +452,7 @@ static void isp_vma_close(struct vm_area_struct *vma)
 	pr_debug("%s: close called\n", __func__);
 }
 
-static int isp_vma_fault(struct vm_fault *vmf)
+static vm_fault_t isp_vma_fault(struct vm_fault *vmf)
 {
 	struct page *page;
 	struct vfe_device *vfe_dev = vmf->vma->vm_private_data;
@@ -471,7 +471,7 @@ static int isp_vma_fault(struct vm_fault *vmf)
 			vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id;
 		isp_page->vfeid = vfe_dev->pdev->id;
 	}
-	return 0;
+	return VM_FAULT_SIGBUS;
 }
 
 static const struct vm_operations_struct isp_vm_ops = {
