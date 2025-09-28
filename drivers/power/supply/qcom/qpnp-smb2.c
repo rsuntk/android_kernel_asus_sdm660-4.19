@@ -1168,6 +1168,7 @@ static int smb2_init_dc_psy(struct smb2 *chip)
  *************************/
 
 static enum power_supply_property smb2_batt_props[] = {
+	POWER_SUPPLY_PROP_CHARGING_ENABLED,
 	POWER_SUPPLY_PROP_INPUT_SUSPEND,
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
@@ -1203,7 +1204,6 @@ static enum power_supply_property smb2_batt_props[] = {
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE,
 #if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	POWER_SUPPLY_PROP_CHARGING_ENABLED,
 	POWER_SUPPLY_PROP_SKIN_TEMP,
 	POWER_SUPPLY_PROP_SMART_CHARGING_ACTIVATION,
 	POWER_SUPPLY_PROP_SMART_CHARGING_INTERRUPTION,
@@ -1239,6 +1239,9 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		rc = smblib_get_prop_batt_present(chg, val);
+		break;
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		val->intval = !get_effective_result(chg->chg_disable_votable);
 		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		rc = smblib_get_prop_input_suspend(chg, val);
@@ -1346,9 +1349,6 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		val->intval = chg->fcc_stepper_enable;
 		break;
 #if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
-		rc = smblib_get_prop_charging_enabled(chg, val);
-		break;
 	case POWER_SUPPLY_PROP_SKIN_TEMP:
 		rc = smblib_get_prop_skin_temp(chg, val);
 		break;
@@ -1422,6 +1422,9 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	switch (prop) {
 	case POWER_SUPPLY_PROP_STATUS:
 		rc = smblib_set_prop_batt_status(chg, val);
+		break;
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		vote(chg->chg_disable_votable, USER_VOTER, !!!val->intval, 0);
 		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		rc = smblib_set_prop_input_suspend(chg, val);
@@ -1505,9 +1508,6 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 		power_supply_changed(chg->batt_psy);
 		break;
 #if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
-		rc = smblib_set_prop_charging_enabled(chg, val);
-		break;
 	case POWER_SUPPLY_PROP_SMART_CHARGING_ACTIVATION:
 		if (val->intval) {
 			pr_debug("Smart Charging was activated.\n");
@@ -1574,6 +1574,7 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 {
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 	case POWER_SUPPLY_PROP_CAPACITY:
@@ -1585,7 +1586,6 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SW_JEITA_ENABLED:
 	case POWER_SUPPLY_PROP_DIE_HEALTH:
 #if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_SMART_CHARGING_ACTIVATION:
 	case POWER_SUPPLY_PROP_SMART_CHARGING_INTERRUPTION:
 	case POWER_SUPPLY_PROP_LRC_ENABLE:
