@@ -6200,11 +6200,7 @@ static void smblib_legacy_detection_work(struct work_struct *work)
 		smblib_err(chg, "Couldn't disable type-c rc=%d\n", rc);
 
 	/* wait for the adapter to turn off VBUS */
-#if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	msleep(400);
-#else
 	msleep(1000);
-#endif
 
 	smblib_dbg(chg, PR_MISC, "legacy workaround enabling typec\n");
 
@@ -6215,11 +6211,7 @@ static void smblib_legacy_detection_work(struct work_struct *work)
 		smblib_err(chg, "Couldn't enable type-c rc=%d\n", rc);
 
 	/* wait for type-c detection to complete */
-#if defined(CONFIG_SOMC_CHARGER_EXTENSION)
-	msleep(200);
-#else
 	msleep(400);
-#endif
 
 	rc = smblib_read(chg, TYPE_C_STATUS_5_REG, &stat);
 	if (rc < 0) {
