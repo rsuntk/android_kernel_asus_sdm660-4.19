@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "827953b0_00a63fb9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2026-01-13T21:45:21Z",
+      "side": 1,
+      "message": "i booted this merge on nile, feel free to merge at the same time as sm8250 one.",
+      "revId": "a6f0bffebc3307d44694b9214fc800f7c8bcd6b0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
