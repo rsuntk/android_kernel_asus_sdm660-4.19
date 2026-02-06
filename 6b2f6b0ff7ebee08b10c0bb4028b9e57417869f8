@@ -16,6 +16,23 @@
       "message": "Fixed mismerge and rebased on top of bpf chain, pls test again",
       "revId": "6b2f6b0ff7ebee08b10c0bb4028b9e57417869f8",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e4ca22d2_3eace3cb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 10067
+      },
+      "writtenOn": "2026-02-06T17:16:23Z",
+      "side": 1,
+      "message": "still boots.",
+      "revId": "6b2f6b0ff7ebee08b10c0bb4028b9e57417869f8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
