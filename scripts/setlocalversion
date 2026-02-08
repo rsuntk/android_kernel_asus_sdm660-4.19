@@ -192,13 +192,9 @@ else
 fi
 
 # localversion* files in the build and source directory
-filter_logic() {
-    echo "$1" | tr ' ' '\n' | grep -vE 'localversion-(st|cip)'
-}
-
-res=$(filter_logic "$(collect_files localversion*)")
+res="$(collect_files localversion*)"
 if test ! "$srctree" -ef .; then
-    res="$res $(filter_logic "$(collect_files "$srctree"/localversion*)")"
+	res="$res$(collect_files "$srctree"/localversion*)"
 fi
 
 # CONFIG_LOCALVERSION and LOCALVERSION (if set)
