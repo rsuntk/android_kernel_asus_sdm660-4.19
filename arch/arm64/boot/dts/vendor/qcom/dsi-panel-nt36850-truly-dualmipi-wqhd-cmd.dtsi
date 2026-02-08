@@ -1,5 +1,5 @@
 &mdss_mdp {
-	dsi_dual_nt36850_truly_cmd: qcom,mdss_dsi_nt36850_truly_wqhd_cmd {
+	dsi_dual_nt36850_truly_cmd: qcom,mdss_dsi_nt36850_truly_wqhd_cmd{
 		qcom,mdss-dsi-panel-name =
 			"Dual nt36850 cmd mode dsi truly panel without DSC";
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";

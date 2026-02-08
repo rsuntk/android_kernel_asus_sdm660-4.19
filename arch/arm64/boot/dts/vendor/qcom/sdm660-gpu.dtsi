@@ -48,7 +48,7 @@
 		reg = <0x5000000 0x40000
 			0x780000 0x6220>;
 		reg-names = "kgsl_3d0_reg_memory", "qfprom_memory";
-		interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <0 300 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "kgsl_3d0_irq";
 		qcom,id = <0>;
 
@@ -105,6 +105,10 @@
 		vddcx-supply = <&gdsc_gpu_cx>;
 		vdd-supply = <&gdsc_gpu_gx>;
 
+		/* Cx ipeak limit supprt */
+		qcom,gpu-cx-ipeak = <&cx_ipeak_lm 1>;
+		qcom,gpu-cx-ipeak-clk = <700000000>;
+
 		/* CPU latency parameter */
 		qcom,pm-qos-active-latency = <518>;
 		qcom,pm-qos-wakeup-latency = <518>;
@@ -123,18 +127,6 @@
 		qcom,ca-target-pwrlevel = <4>;
 
 		qcom,gpu-speed-bin = <0x41a0 0x1fe00000 21>;
-
-		/* Cx ipeak limit support */
-		qcom,gpu-cx-ipeak {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			compatible = "qcom,gpu-cx-ipeak";
-
-			qcom,gpu-cx-ipeak@0 {
-				qcom,gpu-cx-ipeak = <&cx_ipeak_lm 1>;
-				qcom,gpu-cx-ipeak-freq = <700000000>;
-			};
-		};
 
 		/* GPU Mempools */
 		qcom,gpu-mempools {
