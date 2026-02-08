@@ -114,12 +114,6 @@ scm_version()
 		# it fails. Note that git-diff-index does not refresh the
 		# index, so it may give misleading results. See
 		# git-update-index(1), git-diff-index(1), and git-status(1).
-		if {
-			git --no-optional-locks status -uno --porcelain 2>/dev/null ||
-			git diff-index --name-only HEAD
-		} | grep -qvE '^(.. )?scripts/package'; then
-			printf '%s' -dirty
-		fi
 
 		# All done with git
 		return
@@ -192,9 +186,9 @@ else
 fi
 
 # localversion* files in the build and source directory
-res="$(collect_files localversion*)"
+res="$(collect_files localversion)"
 if test ! "$srctree" -ef .; then
-	res="$res$(collect_files "$srctree"/localversion*)"
+	res="$res$(collect_files "$srctree"/localversion)"
 fi
 
 # CONFIG_LOCALVERSION and LOCALVERSION (if set)
