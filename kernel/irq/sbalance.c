@@ -190,6 +190,7 @@ void sbalance_desc_add(struct irq_desc *desc)
 
 	*bi = (typeof(*bi)){ .desc = desc };
 	bi->last_moved = 0;
+	INIT_LIST_HEAD(&bi->move_node);
 	spin_lock(&bal_irq_lock);
 	list_add_tail_rcu(&bi->node, &bal_irq_list);
 	spin_unlock(&bal_irq_lock);
@@ -329,7 +330,7 @@ static void balance_irqs(void)
 	struct bal_domain *bd, *max_bd, *min_bd;
 	unsigned int intrs, max_intrs;
 	bool moved_irq = false;
-	struct bal_irq *bi;
+	struct bal_irq *bi, *tmp;
 	int cpu;
 
 	rcu_read_lock();
@@ -359,6 +360,8 @@ static void balance_irqs(void)
 
 	list_for_each_entry_rcu(bi, &bal_irq_list, node) {
 		unsigned long now = jiffies;
+
+		INIT_LIST_HEAD(&bi->move_node);
 
 		if (!update_irq_data(bi, &cpu))
 			continue;
@@ -394,6 +397,7 @@ static void balance_irqs(void)
 	/* Find the most interrupt-heavy CPU with movable IRQs */
 	while (1) {
 		max_intrs = 0;
+		max_bd = NULL;
 		for_each_cpu(cpu, &cpus) {
 			bd = per_cpu_ptr(&balance_data, cpu);
 			intrs = scale_intrs(bd->ema_intrs ?: bd->intrs, bd->cpu);
@@ -404,7 +408,7 @@ static void balance_irqs(void)
 		}
 
 		/* No balancing to do if there aren't any movable IRQs */
-		if (unlikely(!max_intrs))
+		if (unlikely(!max_bd || !max_intrs))
 			goto unlock;
 
 		/* Ensure the heaviest CPU has IRQs which can be moved away */
@@ -431,7 +435,7 @@ try_next_heaviest:
 	list_sort(NULL, &max_bd->movable_irqs, bal_irq_move_node_cmp);
 
 	/* Push IRQs away from the heaviest CPU to the least-heavy CPUs */
-	list_for_each_entry(bi, &max_bd->movable_irqs, move_node) {
+	list_for_each_entry_safe(bi, tmp, &max_bd->movable_irqs, move_node) {
 		/* Skip this IRQ if it would just overload the target CPU */
 		intrs = scale_intrs((min_bd->ema_intrs ?: min_bd->intrs) + bi->delta_nr, min_bd->cpu);
 		if (intrs >= max_intrs)
@@ -443,6 +447,7 @@ try_next_heaviest:
 
 		/* Keep track of whether or not any IRQs are moved */
 		moved_irq = true;
+		list_del_init(&bi->move_node);
 
 		/* Update the counts and recalculate the max scaled count */
 		min_bd->intrs += bi->delta_nr;
@@ -464,6 +469,12 @@ try_next_heaviest:
 	if (!moved_irq)
 		goto try_next_heaviest;
 unlock:
+	for_each_possible_cpu(cpu) {
+		bd = per_cpu_ptr(&balance_data, cpu);
+		list_for_each_entry_safe(bi, tmp, &bd->movable_irqs, move_node) {
+			list_del_init(&bi->move_node);
+		}
+	}
 	rcu_read_unlock();
 
 	/* nothing: we zeroed per-window sums before processing */
