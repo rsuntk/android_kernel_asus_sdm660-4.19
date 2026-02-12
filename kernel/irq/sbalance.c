@@ -384,6 +384,7 @@ static void balance_irqs(void)
 			continue;
 		}
 
+		INIT_LIST_HEAD(&bi->move_node);
 		list_add_tail(&bi->move_node, &bd->movable_irqs);
 	}
 
