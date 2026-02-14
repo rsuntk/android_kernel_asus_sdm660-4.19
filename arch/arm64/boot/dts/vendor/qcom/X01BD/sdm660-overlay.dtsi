@@ -8,6 +8,7 @@
 			reg = <0x0 0x9ff00000 0x0 0x00400000>;
 			console-size = <0x200000>;
 			pmsg-size = <0x200000>;
+			max-reason = <0x4>;
 			status = "ok";
 		};
 
