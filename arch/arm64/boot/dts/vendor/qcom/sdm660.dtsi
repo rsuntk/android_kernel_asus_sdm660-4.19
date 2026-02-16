@@ -45,13 +45,13 @@
 
 		CPU0: cpu@0 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x0>;
 			enable-method = "psci";
-			efficiency = <636>;
-			capacity-dmips-mhz = <636>;
+			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_0>;
 			qcom,lmh-dcvs = <&lmh_dcvs0>;
+			efficiency = <1024>;
 			next-level-cache = <&L2_0>;
 			#cooling-cells = <2>;
 			L2_0: l2-cache {
@@ -72,15 +72,15 @@
 
 		CPU1: cpu@1 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x1>;
 			enable-method = "psci";
-			efficiency = <636>;
-			capacity-dmips-mhz = <636>;
+			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_0>;
 			qcom,lmh-dcvs = <&lmh_dcvs0>;
-			next-level-cache = <&L2_0>;
 			#cooling-cells = <2>;
+			efficiency = <1024>;
+			next-level-cache = <&L2_0>;
 			L1_I_1: l1-icache {
 				compatible = "arm,arch-cache";
 			};
@@ -91,13 +91,13 @@
 
 		CPU2: cpu@2 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x2>;
 			enable-method = "psci";
-			efficiency = <636>;
-			capacity-dmips-mhz = <636>;
+			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_0>;
 			qcom,lmh-dcvs = <&lmh_dcvs0>;
+			efficiency = <1024>;
 			next-level-cache = <&L2_0>;
 			#cooling-cells = <2>;
 			L1_I_2: l1-icache {
@@ -110,13 +110,13 @@
 
 		CPU3: cpu@3 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x3>;
 			enable-method = "psci";
-			efficiency = <636>;
-			capacity-dmips-mhz = <636>;
+			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_0>;
 			qcom,lmh-dcvs = <&lmh_dcvs0>;
+			efficiency = <1024>;
 			next-level-cache = <&L2_0>;
 			#cooling-cells = <2>;
 			L1_I_3: l1-icache {
@@ -129,13 +129,13 @@
 
 		CPU4: cpu@100 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x100>;
 			enable-method = "psci";
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
+			capacity-dmips-mhz = <1638>;
 			sched-energy-costs = <&CPU_COST_1>;
 			qcom,lmh-dcvs = <&lmh_dcvs1>;
+			efficiency = <1638>;
 			next-level-cache = <&L2_1>;
 			#cooling-cells = <2>;
 			L2_1: l2-cache {
@@ -152,15 +152,15 @@
 
 		CPU5: cpu@101 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x101>;
 			enable-method = "psci";
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
+			capacity-dmips-mhz = <1638>;
 			sched-energy-costs = <&CPU_COST_1>;
 			qcom,lmh-dcvs = <&lmh_dcvs1>;
-			next-level-cache = <&L2_1>;
 			#cooling-cells = <2>;
+			efficiency = <1638>;
+			next-level-cache = <&L2_1>;
 			L1_I_101: l1-icache {
 				compatible = "arm,arch-cache";
 			};
@@ -171,15 +171,15 @@
 
 		CPU6: cpu@102 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x102>;
 			enable-method = "psci";
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
+			capacity-dmips-mhz = <1638>;
 			sched-energy-costs = <&CPU_COST_1>;
 			qcom,lmh-dcvs = <&lmh_dcvs1>;
-			next-level-cache = <&L2_1>;
 			#cooling-cells = <2>;
+			efficiency = <1638>;
+			next-level-cache = <&L2_1>;
 			L1_I_102: l1-icache {
 				compatible = "arm,arch-cache";
 			};
@@ -190,15 +190,15 @@
 
 		CPU7: cpu@103 {
 			device_type = "cpu";
-			compatible = "qcom,kryo260";
+			compatible = "arm,armv8";
 			reg = <0x0 0x103>;
 			enable-method = "psci";
-			efficiency = <1024>;
-			capacity-dmips-mhz = <1024>;
+			capacity-dmips-mhz = <1638>;
 			sched-energy-costs = <&CPU_COST_1>;
 			qcom,lmh-dcvs = <&lmh_dcvs1>;
-			next-level-cache = <&L2_1>;
 			#cooling-cells = <2>;
+			efficiency = <1638>;
+			next-level-cache = <&L2_1>;
 			L1_I_103: l1-icache {
 				compatible = "arm,arch-cache";
 			};
@@ -368,6 +368,14 @@
 			reg = <0x0 0x94a00000 0x0 0x600000>;
 		};
 
+		dump_mem: mem_dump_region {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x400000>;
+		};
+
 		venus_fw_mem: venus_fw_region {
 			compatible = "shared-dma-pool";
 			alloc-ranges = <0x0 0x80000000 0x0 0x20000000>;
@@ -406,7 +414,7 @@
 			alloc-ranges = <0 0x00000000 0 0xffffffff>;
 			reusable;
 			alignment = <0 0x400000>;
-			size = <0 0x8000000>;
+			size = <0 0x2c00000>;
 			linux,cma-default;
 		};
 
@@ -416,8 +424,8 @@
 		};
 
 		dfps_data_mem: dfps_data_mem@0x9f7ff000 {
-			reg = <0 0x9f800000 0 0x00001000>;
-			label = "dfps_data_mem";
+		       reg = <0x0 0x9f800000 0x0 0x00001000>;
+		       label = "dfps_data_mem";
 		};
 	};
 
@@ -513,272 +521,272 @@
 		interrupt-controller;
 		#interrupt-cells = <4>;
 		cell-index = <0>;
-		status = "ok";
+		status = "okay";
 	};
 
-	mem_dump {
-		compatible = "qcom,mem-dump";
-		status = "disabled";
+		mem_dump {
+			compatible = "qcom,mem-dump";
+			memory-region = <&dump_mem>;
 
-		rpm_sw_dump {
-			qcom,dump-size = <0x28000>;
-			qcom,dump-id = <0xea>;
-		};
+			rpm_sw_dump {
+				qcom,dump-size = <0x28000>;
+				qcom,dump-id = <0xea>;
+			};
 
-		pmic_dump {
-			qcom,dump-size = <0x10000>;
-			qcom,dump-id = <0xe4>;
-		};
+			pmic_dump {
+				qcom,dump-size = <0x10000>;
+				qcom,dump-id = <0xe4>;
+			};
 
-		vsense_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xe9>;
-		};
+			vsense_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xe9>;
+			};
 
-		tmc_etf_dump {
-			qcom,dump-size = <0x10000>;
-			qcom,dump-id = <0xf0>;
-		};
+			tmc_etf_dump {
+				qcom,dump-size = <0x10000>;
+				qcom,dump-id = <0xf0>;
+			};
 
-		tmc_etr_reg_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0x100>;
-		};
+			tmc_etr_reg_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0x100>;
+			};
 
-		tmc_etf_reg_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0x101>;
-		};
+			tmc_etf_reg_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0x101>;
+			};
 
-		misc_data_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xe8>;
-		};
+			misc_data_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xe8>;
+			};
 
-		dcc_reg_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xe6>;
-		};
+			dcc_reg_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xe6>;
+			};
 
-		dcc_sram_dump {
-			qcom,dump-size = <0x2000>;
-			qcom,dump-id = <0xe7>;
-		};
+			dcc_sram_dump {
+				qcom,dump-size = <0x2000>;
+				qcom,dump-id = <0xe7>;
+			};
 
-		log_buf_dump {
-			qcom,dump-size = <0x10000>;
-			qcom,dump-id = <0x110>;
-		};
+			log_buf_dump {
+				qcom,dump-size = <0x10000>;
+				qcom,dump-id = <0x110>;
+			};
 
-		log_buf_first_idx_dump {
-			qcom,dump-size = <0x0>;
-			qcom,dump-id = <0x111>;
-		};
+			log_buf_first_idx_dump {
+				qcom,dump-size = <0x0>;
+				qcom,dump-id = <0x111>;
+			};
 
-		etm_reg0_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa0>;
-		};
+			etm_reg0_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa0>;
+			};
 
-		etm_reg1_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa1>;
-		};
+			etm_reg1_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa1>;
+			};
 
-		etm_reg2_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa2>;
-		};
+			etm_reg2_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa2>;
+			};
 
-		etm_reg3_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa3>;
-		};
+			etm_reg3_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa3>;
+			};
 
-		etm_reg4_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa4>;
-		};
+			etm_reg4_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa4>;
+			};
 
-		etm_reg5_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa5>;
-		};
+			etm_reg5_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa5>;
+			};
 
-		etm_reg6_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa6>;
-		};
+			etm_reg6_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa6>;
+			};
 
-		etm_reg7_dump {
-			qcom,dump-size = <0x1000>;
-			qcom,dump-id = <0xa7>;
-		};
+			etm_reg7_dump {
+				qcom,dump-size = <0x1000>;
+				qcom,dump-id = <0xa7>;
+			};
 
-		c_scandump {
-			qcom,dump-size = <0x40000>;
-			qcom,dump-id = <0xeb>;
-		};
+			c_scandump {
+				qcom,dump-size = <0x40000>;
+				qcom,dump-id = <0xeb>;
+			};
 
-		c0_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x0>;
-		};
+			c0_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x0>;
+			};
 
-		c100_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x1>;
-		};
+			c100_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x1>;
+			};
 
-		c200_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x2>;
-		};
+			c200_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x2>;
+			};
 
-		c300_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x3>;
-		};
+			c300_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x3>;
+			};
 
-		c400_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x4>;
-		};
+			c400_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x4>;
+			};
 
-		c500_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x5>;
-		};
+			c500_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x5>;
+			};
 
-		c600_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x6>;
-		};
+			c600_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x6>;
+			};
 
-		c700_context {
-			qcom,dump-size = <0x800>;
-			qcom,dump-id = <0x7>;
-		};
+			c700_context {
+				qcom,dump-size = <0x800>;
+				qcom,dump-id = <0x7>;
+			};
 
-		l1_i_cache0 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x60>;
-		};
+			l1_i_cache0 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x60>;
+			};
 
-		l1_i_cache1 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x61>;
-		};
+			l1_i_cache1 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x61>;
+			};
 
-		l1_i_cache2 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x62>;
-		};
+			l1_i_cache2 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x62>;
+			};
 
-		l1_i_cache3 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x63>;
-		};
+			l1_i_cache3 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x63>;
+			};
 
-		l1_i_cache100 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x64>;
-		};
+			l1_i_cache100 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x64>;
+			};
 
-		l1_i_cache101 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x65>;
-		};
+			l1_i_cache101 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x65>;
+			};
 
-		l1_i_cache102 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x66>;
-		};
+			l1_i_cache102 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x66>;
+			};
 
-		l1_i_cache103 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x67>;
-		};
+			l1_i_cache103 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x67>;
+			};
 
-		l1_d_cache0 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x80>;
-		};
+			l1_d_cache0 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x80>;
+			};
 
-		l1_d_cache1 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x81>;
-		};
+			l1_d_cache1 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x81>;
+			};
 
-		l1_d_cache2 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x82>;
-		};
+			l1_d_cache2 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x82>;
+			};
 
-		l1_d_cache3 {
-			qcom,dump-size = <0x9040>;
-			qcom,dump-id = <0x83>;
-		};
+			l1_d_cache3 {
+				qcom,dump-size = <0x9040>;
+				qcom,dump-id = <0x83>;
+			};
 
-		l1_d_cache100 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x84>;
-		};
+			l1_d_cache100 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x84>;
+			};
 
-		l1_d_cache101 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x85>;
-		};
+			l1_d_cache101 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x85>;
+			};
 
-		l1_d_cache102 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x86>;
-		};
+			l1_d_cache102 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x86>;
+			};
 
-		l1_d_cache103 {
-			qcom,dump-size = <0x12000>;
-			qcom,dump-id = <0x87>;
-		};
+			l1_d_cache103 {
+				qcom,dump-size = <0x12000>;
+				qcom,dump-id = <0x87>;
+			};
 
-		l1_tlb_dump0 {
-			qcom,dump-size = <0x2800>;
-			qcom,dump-id = <0x20>;
-		};
+			l1_tlb_dump0 {
+				qcom,dump-size = <0x2800>;
+				qcom,dump-id = <0x20>;
+			};
 
-		l1_tlb_dump1 {
-			qcom,dump-size = <0x2800>;
-			qcom,dump-id = <0x21>;
-		};
+			l1_tlb_dump1 {
+				qcom,dump-size = <0x2800>;
+				qcom,dump-id = <0x21>;
+			};
 
-		l1_tlb_dump2 {
-			qcom,dump-size = <0x2800>;
-			qcom,dump-id = <0x22>;
-		};
+			l1_tlb_dump2 {
+				qcom,dump-size = <0x2800>;
+				qcom,dump-id = <0x22>;
+			};
 
-		l1_tlb_dump3 {
-			qcom,dump-size = <0x2800>;
-			qcom,dump-id = <0x23>;
-		};
+			l1_tlb_dump3 {
+				qcom,dump-size = <0x2800>;
+				qcom,dump-id = <0x23>;
+			};
 
-		l1_tlb_dump100 {
-			qcom,dump-size = <0x4800>;
-			qcom,dump-id = <0x24>;
-		};
+			l1_tlb_dump100 {
+				qcom,dump-size = <0x4800>;
+				qcom,dump-id = <0x24>;
+			};
 
-		l1_tlb_dump101 {
-			qcom,dump-size = <0x4800>;
-			qcom,dump-id = <0x25>;
-		};
+			l1_tlb_dump101 {
+				qcom,dump-size = <0x4800>;
+				qcom,dump-id = <0x25>;
+			};
 
-		l1_tlb_dump102 {
-			qcom,dump-size = <0x4800>;
-			qcom,dump-id = <0x26>;
-		};
+			l1_tlb_dump102 {
+				qcom,dump-size = <0x4800>;
+				qcom,dump-id = <0x26>;
+			};
 
-		l1_tlb_dump103 {
-			qcom,dump-size = <0x4800>;
-			qcom,dump-id = <0x27>;
-		};
+			l1_tlb_dump103 {
+				qcom,dump-size = <0x4800>;
+				qcom,dump-id = <0x27>;
+			};
 	};
 
 	wdog: qcom,wdt@17817000 {
@@ -790,6 +798,7 @@
 		qcom,bark-time = <11000>;
 		qcom,pet-time = <10000>;
 		qcom,ipi-ping;
+		qcom,wakeup-enable;
 	};
 
 	qcom,sps {
@@ -1126,7 +1135,7 @@
 		qcom,mport = <0>;
 		qcom,hw-timer-hz = <19200000>;
 		qcom,target-dev = <&cpu_cpu_ddr_bw>;
-		qcom,count-unit = <0x10000>;
+		qcom,count-unit = <0x100000>;
 	};
 
 	cpu0_cpu_ddr_latfloor: qcom,cpu0-cpu-ddr-latfloor {
@@ -1174,7 +1183,7 @@
 			qcom,cpulist = <&CPU0 &CPU1 &CPU2 &CPU3>;
 			qcom,target-dev = <&cpu0_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
-			qcom,stall-ev = <0xE7>;
+			qcom,stall-cycle-ev = <0xE7>;
 			qcom,core-dev-table =
 				< 300000 MHZ_TO_MBPS(150, 4) >,
 				< 902400 MHZ_TO_MBPS(200, 4) >,
@@ -1193,7 +1202,7 @@
 		};
 	};
 
-       cpu4_memlat_cpugrp: qcom,cpu4-cpugrp {
+	cpu4_memlat_cpugrp: qcom,cpu4-cpugrp {
 		compatible = "qcom,arm-memlat-cpugrp";
 		qcom,cpulist = <&CPU4 &CPU5 &CPU6 &CPU7>;
 
@@ -1202,7 +1211,7 @@
 			qcom,cpulist = <&CPU4 &CPU5 &CPU6 &CPU7>;
 			qcom,target-dev = <&cpu4_cpu_ddr_lat>;
 			qcom,cachemiss-ev = <0x17>;
-			qcom,stall-ev = <0x24>;
+			qcom,stall-cycle-ev = <0x24>;
 			qcom,core-dev-table =
 				< 300000 MHZ_TO_MBPS(150, 4) >,
 				< 1113600 MHZ_TO_MBPS(200, 4) >,
@@ -2121,7 +2130,7 @@
 		qcom,proxy-timeout-ms = <100>;
 		qcom,firmware-name = "venus";
 		memory-region = <&venus_fw_mem>;
-		status = "ok";
+		status = "okay";
 	};
 
 	qcom,icnss@18800000 {
@@ -2205,7 +2214,7 @@
 		/* GPIO output to lpass */
 		qcom,smem-states = <&adsp_smp2p_out 0>;
 		qcom,smem-state-names = "qcom,force-stop";
-		status = "ok";
+		status = "okay";
 	};
 
 	qcom,turing@1a300000 {
@@ -2246,7 +2255,7 @@
 		/* Outputs to turing */
 		qcom,smem-states = <&cdsp_smp2p_out 0>;
 		qcom,smem-state-names = "qcom,force-stop";
-		status = "ok";
+		status = "okay";
 	};
 
 	pil_modem: qcom,mss@4080000 {
@@ -2312,7 +2321,7 @@
 		qcom,smem-states = <&modem_smp2p_out 0>;
 		qcom,smem-state-names = "qcom,force-stop";
 
-		status = "ok";
+		status = "okay";
 		qcom,mba-mem@0 {
 			compatible = "qcom,pil-mba-mem";
 			memory-region = <&pil_mba_mem>;
@@ -2741,11 +2750,11 @@
 #include "sdm660-thermal.dtsi"
 
 &gdsc_usb30 {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_ufs {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_bimc_smmu {
@@ -2754,54 +2763,54 @@
 		 <&clock_mmss MMSS_BIMC_SMMU_AHB_CLK>;
 	proxy-supply = <&gdsc_bimc_smmu>;
 	qcom,proxy-consumer-enable;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_hlos1_vote_lpass_adsp {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_hlos1_vote_turing_adsp {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_hlos2_vote_turing_adsp {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_venus {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_venus_core0 {
 	qcom,support-hw-trigger;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_camss_top {
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_vfe0 {
 	parent-supply = <&gdsc_camss_top>;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_vfe1 {
 	parent-supply = <&gdsc_camss_top>;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_cpp {
 	parent-supply = <&gdsc_camss_top>;
 	qcom,support-hw-trigger;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_mdss {
 	proxy-supply = <&gdsc_mdss>;
 	qcom,proxy-consumer-enable;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_gpu_gx {
@@ -2809,11 +2818,11 @@
 	clocks = <&clock_gfx GFX3D_CLK_SRC>;
 	qcom,force-enable-root-clk;
 	parent-supply = <&gfx_vreg_corner>;
-	status = "ok";
+	status = "okay";
 };
 
 &gdsc_gpu_cx {
-	status = "ok";
+	status = "okay";
 };
 
 
@@ -2849,7 +2858,7 @@
 	gpio_keys {
 		status = "okay";
 		compatible = "gpio-keys";
-		input-name = "gpio-keys";
+		label = "gpio-keys";
 		pinctrl-names = "tlmm_gpio_key_active","tlmm_gpio_key_suspend",
 						"default";
 		pinctrl-0 = <&gpio_key_active &key_vol_up_default>;
@@ -2884,7 +2893,7 @@
 };
 
 &blsp2_uart1_hs {
-	status = "ok";
+	status = "okay";
 };
 
 &pm660_adc_tm {

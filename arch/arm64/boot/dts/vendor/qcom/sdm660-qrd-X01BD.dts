@@ -65,7 +65,7 @@
 &dsi_dual_nt36850_truly_cmd {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <4095>;
+	qcom,mdss-dsi-bl-max-level = <3259>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
@@ -104,10 +104,10 @@
 	cdfinger_fp {
 		compatible = "cdfinger,fingerprint";
 		interrupt-parent = <&tlmm>;
-		interrupts = <72 0x0>;
-		cdfinger,reset_gpio = <&tlmm 20 0>;
-		cdfinger,irq_gpio = <&tlmm 72 0>;
-		cdfinger,gpio_vdd = <&pm660l_gpios 5 0>;
+		interrupts = <72 IRQ_TYPE_EDGE_RISING>;
+		cdfinger,reset_gpio = <&tlmm 20 GPIO_ACTIVE_LOW>;
+		cdfinger,irq_gpio = <&tlmm 72 GPIO_ACTIVE_HIGH>;
+		cdfinger,gpio_vdd = <&pm660l_gpios 5 GPIO_ACTIVE_HIGH>;
 
 		pinctrl-names = "cdfinger_active",
 				"cdfinger_sleep";
@@ -118,11 +118,12 @@
 	focaltech_fingerprint {
 		compatible = "focaltech,fingerprint";
 		interrupt-parent = <&tlmm>;
-		interrupts = <72 0x0>;
-		fp,reset_gpio   = <&tlmm 20 0>;
-		fp,irq_gpio        = <&tlmm 72 0>;
-		fp,vdd_gpio        = <&pm660l_gpios 5 0>;
-
+		interrupts = <72 IRQ_TYPE_EDGE_RISING>;
+		fp,reset_gpio   = <&tlmm 20 GPIO_ACTIVE_LOW>;
+		fp,irq_gpio        = <&tlmm 72 GPIO_ACTIVE_HIGH>;
+		fp,vdd_gpio        = <&pm660l_gpios 5 GPIO_ACTIVE_HIGH>;
+        spi-max-frequency = <10000000>;
+        
 		pinctrl-names = "focalfp_active",
 				"focalfp_sleep";
 		pinctrl-0 = <&focalfp_reset_active &focalfp_irq_active>;
@@ -153,21 +154,11 @@
 	/delete-node/sound-tavil;
 };
 
-&i2c_2 { /* BLSP2 */
-	status = "okay";
+/*add for SAR SENSOR*/
 
-	semtech@28 { /* sar sensor */
-		compatible = "Semtech,sx9310";
-		reg = <0x28>;
-		vdd-supply  =<&pm660l_l3>;
-		vdd1-supply =<&pm660_l13>;  // for svdd
-		interrupt-parent = <&tlmm>;
-		Semtech,gpio-irq= <&tlmm 77 0x2008>; // gpio 77
-		interrupts = <77 0x2>;
-
-		pinctrl-names = "sarsensor_active", "sarsensor_suspend";
-		pinctrl-0 = <&sarsensor_int_active>;
-		pinctrl-1 = <&sarsensor_int_suspend>;
+&i2c_2 {
+	semtech@28 {
+		status = "disabled";
 	};
 };
 
@@ -178,7 +169,7 @@
 		compatible = "stk,stk3x3x";
 		reg = <0x47>;
 		interrupt-parent = <&tlmm>;
-		interrupts = <45 0x2>;
+		interrupts = <45 IRQ_TYPE_EDGE_FALLING>;
 		vdd-supply = <&pm660l_l3>;
 		vio-supply = <&pm660_l14>;
 		stk,irq-gpio = <&tlmm 45 0x02>;

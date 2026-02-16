@@ -15,22 +15,14 @@
 		ramoops {
 			compatible = "removed-dma-pool", "ramoops";
 			no-map;
-			reg = <0x0 0x9ff00000 0x0 0x00400000>;
+			reg = <0x0 0xb0000000 0x0 0x400000>;
 			console-size = <0x200000>;
 			pmsg-size = <0x200000>;
-			max-reason = <0x4>;
 			status = "ok";
 		};
 
 		cont_splash_mem: splash_region@9d400000 {
 			reg = <0x0 0x9d400000 0x0 0x02400000>;
-		};
-
-		/delete-node/ dfps_data_mem@0x9f7ff000;
-
-		dfps_data_mem: dfps_data_mem@0x9f800000 {
-			reg = <0x0 0x9f800000 0x0 0x00001000>;
-			label = "dfps_data_mem";
 		};
 	};
 };
@@ -49,24 +41,6 @@
 			system {
 				compatible = "android,system";
 				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system";
-				type = "ext4";
-				mnt_flags = "ro,barrier=1,discard";
-				fsmgr_flags = "wait";
-				status = "ok";
-			};
-
-			system_ext {
-				compatible = "android,system_ext";
-				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/system_ext";
-				type = "ext4";
-				mnt_flags = "ro,barrier=1,discard";
-				fsmgr_flags = "wait";
-				status = "ok";
-			};
-
-			product {
-				compatible = "android,product";
-				dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/product";
 				type = "ext4";
 				mnt_flags = "ro,barrier=1,discard";
 				fsmgr_flags = "wait";
@@ -123,10 +97,4 @@
 	qcom,msm_fastrpc {
 		/delete-property/ qcom,fastrpc-adsp-sensors-pdr;
 	};
-};
-
-&thermal_zones {
-	/delete-node/ vbat_adc;
-	/delete-node/ vbat_low;
-	/delete-node/ vbat_too_low;
 };
