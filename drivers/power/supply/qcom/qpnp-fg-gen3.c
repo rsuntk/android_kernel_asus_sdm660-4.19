@@ -1567,12 +1567,8 @@ static int fg_charge_full_update(struct fg_dev *fg)
 			fg_dbg(fg, FG_STATUS, "Terminated charging @ SOC%d\n",
 				msoc);
 		}
-#ifdef CONFIG_MACH_ASUS_SDM660
-	} else if ((msoc_raw <= recharge_soc || !fg->charge_done) && fg->charge_full) {
-#else
 	} else if ((msoc_raw <= recharge_soc || !fg->charge_done)
 			&& fg->charge_full) {
-#endif
 		if (chip->dt.linearize_soc) {
 			fg->delta_soc = FULL_CAPACITY - msoc;
 
@@ -2288,7 +2284,7 @@ static void fg_ttf_update(struct fg_dev *fg)
 	chip->ttf.last_ttf = 0;
 	chip->ttf.last_ms = 0;
 	mutex_unlock(&chip->ttf.lock);
-	queue_delayed_work(system_power_efficient_wq, &chip->ttf_work, msecs_to_jiffies(delay_ms));
+	schedule_delayed_work(&chip->ttf_work, msecs_to_jiffies(delay_ms));
 }
 
 static void restore_cycle_counter(struct fg_dev *fg)
@@ -2956,7 +2952,7 @@ done:
 out:
 	fg->soc_reporting_ready = true;
 	vote(fg->awake_votable, ESR_FCC_VOTER, true, 0);
-	queue_delayed_work(system_power_efficient_wq, &chip->pl_enable_work, msecs_to_jiffies(5000));
+	schedule_delayed_work(&chip->pl_enable_work, msecs_to_jiffies(5000));
 	vote(fg->awake_votable, PROFILE_LOAD, false, 0);
 	if (!work_pending(&fg->status_change_work)) {
 		fg_stay_awake(fg, FG_STATUS_NOTIFY_WAKE);
@@ -2989,7 +2985,7 @@ static void sram_dump_work(struct work_struct *work)
 	fg_dbg(fg, FG_STATUS, "SRAM Dump done at %lld.%d\n",
 		quotient, remainder);
 resched:
-	queue_delayed_work(system_power_efficient_wq, &fg->sram_dump_work,
+	schedule_delayed_work(&fg->sram_dump_work,
 			msecs_to_jiffies(fg_sram_dump_period_ms));
 }
 
@@ -3021,7 +3017,7 @@ static ssize_t sram_dump_en_store(struct device *dev, struct device_attribute
 	chip = power_supply_get_drvdata(bms_psy);
 	fg = &chip->fg;
 	if (fg_sram_dump)
-		queue_delayed_work(system_power_efficient_wq, &fg->sram_dump_work,
+		schedule_delayed_work(&fg->sram_dump_work,
 				msecs_to_jiffies(fg_sram_dump_period_ms));
 	else
 		cancel_delayed_work_sync(&fg->sram_dump_work);
@@ -3616,7 +3612,7 @@ static void ttf_work(struct work_struct *work)
 		/* keep the wake lock and prime the IBATT and VBATT buffers */
 		if (ttf < 0) {
 			/* delay for one FG cycle */
-			queue_delayed_work(system_power_efficient_wq, &chip->ttf_work,
+			schedule_delayed_work(&chip->ttf_work,
 							msecs_to_jiffies(1500));
 			mutex_unlock(&chip->ttf.lock);
 			return;
@@ -3633,7 +3629,7 @@ static void ttf_work(struct work_struct *work)
 	}
 
 	/* recurse every 10 seconds */
-	queue_delayed_work(system_power_efficient_wq, &chip->ttf_work, msecs_to_jiffies(10000));
+	schedule_delayed_work(&chip->ttf_work, msecs_to_jiffies(10000));
 end_work:
 	vote(fg->awake_votable, TTF_PRIMING, false, 0);
 	mutex_unlock(&chip->ttf.lock);
@@ -4424,7 +4420,6 @@ static int fg_hw_init(struct fg_dev *fg)
 	return 0;
 }
 
-#ifndef CONFIG_MACH_ASUS_SDM660
 static int fg_adjust_timebase(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -4459,7 +4454,6 @@ static int fg_adjust_timebase(struct fg_dev *fg)
 
 	return 0;
 }
-#endif
 
 /* INTERRUPT HANDLERS STAY HERE */
 
@@ -4529,7 +4523,7 @@ static irqreturn_t fg_batt_missing_irq_handler(int irq, void *data)
 	}
 
 	clear_battery_profile(fg);
-	queue_delayed_work(system_power_efficient_wq, &fg->profile_load_work, 0);
+	schedule_delayed_work(&fg->profile_load_work, 0);
 
 	if (fg->fg_psy)
 		power_supply_changed(fg->fg_psy);
@@ -4572,11 +4566,9 @@ static irqreturn_t fg_delta_batt_temp_irq_handler(int irq, void *data)
 	fg->health = prop.intval;
 
 	if (fg->last_batt_temp != batt_temp) {
-#ifndef CONFIG_MACH_ASUS_SDM660
 		rc = fg_adjust_timebase(fg);
 		if (rc < 0)
 			pr_err("Error in adjusting timebase, rc=%d\n", rc);
-#endif
 
 		rc = fg_adjust_recharge_voltage(fg);
 		if (rc < 0)
@@ -4652,11 +4644,9 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	if (rc < 0)
 		pr_err("Error in validating ESR, rc=%d\n", rc);
 
-#ifndef CONFIG_MACH_ASUS_SDM660
 	rc = fg_adjust_timebase(fg);
 	if (rc < 0)
 		pr_err("Error in adjusting timebase, rc=%d\n", rc);
-#endif
 
 	if (batt_psy_initialized(fg))
 		power_supply_changed(fg->batt_psy);
@@ -5141,10 +5131,6 @@ static int fg_parse_dt(struct fg_gen3_chip *chip)
 				rc);
 	}
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_parse_dt :HW jeita cold:%d,cool:%d,warm:%d,hot:%d\n", chip->dt.jeita_thresholds[JEITA_COLD],chip->dt.jeita_thresholds[JEITA_COOL] ,chip->dt.jeita_thresholds[JEITA_WARM],chip->dt.jeita_thresholds[JEITA_HOT]); 
-#endif
-
 	if (of_property_count_elems_of_size(node,
 		"qcom,battery-thermal-coefficients",
 		sizeof(u8)) == BATT_THERM_NUM_COEFFS) {
@@ -5613,7 +5599,7 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	}
 
 	device_init_wakeup(fg->dev, true);
-	queue_delayed_work(system_power_efficient_wq, &fg->profile_load_work, 0);
+	schedule_delayed_work(&fg->profile_load_work, 0);
 
 	pr_debug("FG GEN3 driver probed successfully\n");
 	return 0;
@@ -5652,9 +5638,9 @@ static int fg_gen3_resume(struct device *dev)
 	if (rc < 0)
 		pr_err("Error in configuring ESR timer, rc=%d\n", rc);
 
-	queue_delayed_work(system_power_efficient_wq, &chip->ttf_work, 0);
+	schedule_delayed_work(&chip->ttf_work, 0);
 	if (fg_sram_dump)
-		queue_delayed_work(system_power_efficient_wq, &fg->sram_dump_work,
+		schedule_delayed_work(&fg->sram_dump_work,
 				msecs_to_jiffies(fg_sram_dump_period_ms));
 
 	if (!work_pending(&fg->status_change_work)) {
@@ -5687,20 +5673,7 @@ static void fg_gen3_shutdown(struct platform_device *pdev)
 	struct fg_gen3_chip *chip = dev_get_drvdata(&pdev->dev);
 	struct fg_dev *fg = &chip->fg;
 	int rc, bsoc;
-
-#ifdef CONFIG_MACH_ASUS_SDM660
 	u8 mask;
-	u8 status;
-	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
-	printk("fg_gen3_shutdown status0=%d\n",status);
-	rc = fg_masked_write(fg, BATT_INFO_BATT_MISS_CFG(fg),
-			BM_FROM_BATT_ID_BIT, 0);
-	if (rc < 0)
-		pr_err("Error in writing to %04x, rc=%d\n",
-			BATT_INFO_BATT_MISS_CFG(fg), rc);
-	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
-	printk("fg_gen3_shutdown status1=%d\n",status);
-#endif
 
 	if (fg->charge_full) {
 		rc = fg_get_sram_prop(fg, FG_SRAM_BATT_SOC, &bsoc);
