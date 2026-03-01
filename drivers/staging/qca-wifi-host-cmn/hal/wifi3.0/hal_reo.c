@@ -448,6 +448,8 @@ inline int hal_reo_cmd_queue_stats(void *reo_ring, struct hal_soc *soc,
 	HAL_DESC_SET_FIELD(reo_desc, REO_GET_QUEUE_STATS_2, CLEAR_STATS,
 			      cmd->u.stats_params.clear);
 
+	val = reo_desc[CMD_HEADER_DW_OFFSET];
+
 	if (hif_pm_runtime_get(soc->hif_handle,
 			       RTPM_ID_HAL_REO_CMD) == 0) {
 		hal_srng_access_end(soc, reo_ring);
@@ -459,7 +461,6 @@ inline int hal_reo_cmd_queue_stats(void *reo_ring, struct hal_soc *soc,
 		hal_srng_inc_flush_cnt(reo_ring);
 	}
 
-	val = reo_desc[CMD_HEADER_DW_OFFSET];
 	return HAL_GET_FIELD(UNIFORM_REO_CMD_HEADER_0, REO_CMD_NUMBER,
 				     val);
 }
