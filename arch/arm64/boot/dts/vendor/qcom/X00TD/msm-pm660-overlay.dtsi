@@ -31,8 +31,11 @@
 	qcom,float-option = <1>;
 	qcom,auto-recharge-soc;
 	qcom,wipower-max-uw = <0>;
+
+	/* OTG */
 	qcom,otg-cl-ua = <1000000>;
 	qcom,boost-threshold-ua = <100000>;
+	qcom,otg-deglitch-time-ms = <50>;
 	qcom,hvdcp-disable;
 };
 
