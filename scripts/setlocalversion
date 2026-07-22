@@ -152,7 +152,7 @@ collect_files()
 
 	for file; do
 		case "$file" in
-		*\~*)
+		*\~*|*localversion-st*|*localversion-cip*)
 			continue
 			;;
 		esac
