@@ -938,12 +938,13 @@ void pm_print_active_wakeup_sources(void)
 	list_for_each_entry_rcu(ws, &wakeup_sources, entry) {
 		if (ws->active) {
 			pr_debug("active wakeup source: %s\n", ws->name);
-			active = 1;
-			pr_info("active wakeup source: %s\n", ws->name);
 #ifdef CONFIG_BOEFFLA_WL_BLOCKER
-			if (!check_for_block(ws))	// AP: check if wakelock is on wakelock blocker list
-#endif
+			// AP: check if wakelock is on wakelock blocker list
+			if (!check_for_block(ws))
 				active = 1;
+#else
+			active = 1;
+#endif
 		} else if (!active &&
 			   (!last_activity_ws ||
 			    ktime_to_ns(ws->last_time) >
