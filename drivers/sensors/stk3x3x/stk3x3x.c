@@ -925,7 +925,6 @@ static int32_t stk3x3x_get_state(struct stk3x3x_data *ps_data)
 static void stk_ps_report(struct stk3x3x_data *ps_data, int nf)
 {
 	ps_data->ps_distance_last = nf;
-	pr_err("%s:ps_distance_last = %d\n", __func__, nf);
 	input_report_abs(ps_data->ps_input_dev, ABS_DISTANCE, nf);
 #ifdef QUALCOMM_PLATFORM
 	input_event(ps_data->ps_input_dev, EV_SYN, SYN_REPORT, 0);
