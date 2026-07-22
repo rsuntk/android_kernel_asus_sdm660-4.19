@@ -41,31 +41,25 @@
 #ifdef CONFIG_OF
 #include <linux/of_gpio.h>
 #endif
-#ifdef CONFIG_HAS_EARLYSUSPEND
-//#include <linux/earlysuspend.h>
-#endif
 
 #ifndef DEBUG
-
 #ifdef pr_info
 #undef pr_info
 #define pr_info(fmt, ...) no_printk(KERN_INFO fmt, ##__VA_ARGS__)
 #endif
-
 #ifdef pr_debug
 #undef pr_debug
 #define pr_debug(fmt, ...) no_printk(KERN_DEBUG fmt, ##__VA_ARGS__)
 #endif
-
 #endif
 
 #define DRIVER_VERSION "3.11.0"
 
 /* Driver Settings */
 #define CONFIG_STK_PS_ALS_USE_CHANGE_THRESHOLD
-/* Huaqin modify for lsensor gain by chenyijun5 at 2018/02/27 start */
-#define STK_ALS_CHANGE_THD                                                     \
-	2 /* The threshold to trigger ALS interrupt, unit: lux */
+/* Huaqin modify for lsensor gain by chenyijun5 at 2018/02/27 start */ 
+/* The threshold to trigger ALS interrupt, unit: lux */
+#define STK_ALS_CHANGE_THD 2
 /* Huaqin modify for lsensor gain by chenyijun5 at 2018/02/27 end */
 #define STK_INT_PS_MODE 1 /* 1, 2, or 3	*/
 /*Huaqin delete for ps INT mode by chenyijun5 at 2018/03/29 start*/
@@ -94,11 +88,7 @@
 #define STK_QUALCOMM_POWER_CTRL
 #endif
 
-#ifdef SPREADTRUM_PLATFORM
 #include "stk3x1x.h"
-#else
-#include "stk3x1x.h"
-#endif
 
 #ifdef STK_TUNE1
 // If tune1 is enabled, ALS = polling mode and PS = interrupt mode
@@ -407,9 +397,6 @@ struct stk3x1x_data {
 	int int_pin;
 	uint8_t wait_reg;
 	uint8_t int_reg;
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	//struct early_suspend stk_early_suspend;
-#endif
 	uint16_t ps_thd_h;
 	uint16_t ps_thd_l;
 #ifdef CALI_PS_EVERY_TIME

@@ -44,17 +44,14 @@
 #endif
 
 #ifndef DEBUG
-
 #ifdef pr_info
 #undef pr_info
 #define pr_info(fmt, ...) no_printk(KERN_INFO fmt, ##__VA_ARGS__)
 #endif
-
 #ifdef pr_debug
 #undef pr_debug
 #define pr_debug(fmt, ...) no_printk(KERN_DEBUG fmt, ##__VA_ARGS__)
 #endif
-
 #endif
 
 #define DRIVER_VERSION "3.11.0"
