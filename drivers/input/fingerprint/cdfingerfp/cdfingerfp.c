@@ -1,5 +1,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/device.h>
 #include <linux/ioport.h>
 #include <linux/errno.h>
@@ -101,17 +102,21 @@ struct cdfinger_key_map {
 
 static int isInKeyMode; // key mode
 static int screen_status = 1; // screen on
-static u8 cdfinger_debug = 0x01;
 static int isInit;
+
+static u8 cdfinger_debug = 0x01;
+static int enable_debug = 0;
+module_param(enable_debug, int, 0);
 
 #define CDFINGER_DBG(fmt, args...) \
 	do { \
-		if (cdfinger_debug & 0x01) \
+		if ((enable_debug > 0) && (cdfinger_debug & 0x01)) \
 		printk("[DBG][cdfinger]:%5d: <%s>" fmt, __LINE__, __func__, ##args); \
 	} while (0)
 
 #define CDFINGER_ERR(fmt, args...) \
 	do { \
+		if (enable_debug > 0) \
 		printk("[DBG][cdfinger]:%5d: <%s>" fmt, __LINE__, __func__, ##args); \
 	} while (0)
 
@@ -543,7 +548,7 @@ static int cdfinger_probe(struct platform_device *pdev)
 	cdfingerdev->miscdev = &st_cdfinger_dev;
 	mutex_init(&cdfingerdev->buf_lock);
 
-	cdfingerdev->cdfinger_lock = wakeup_source_register(NULL, "cdfinger wakelock");
+	cdfingerdev->cdfinger_lock = wakeup_source_register(NULL, "cdfinger_wl");
 	if (!cdfingerdev->cdfinger_lock) {
 		CDFINGER_ERR("create wake lock fail!\n");
 		goto unregister_dev2;
