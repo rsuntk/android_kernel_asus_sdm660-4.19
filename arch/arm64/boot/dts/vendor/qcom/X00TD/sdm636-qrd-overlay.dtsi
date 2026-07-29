@@ -31,10 +31,8 @@
 		lcm_lab-supply = <&lcdb_ldo_vreg>;
 		lcm_ibb-supply = <&lcdb_ncp_vreg>;
 		novatek,reset-gpio = <&tlmm 66 0x0>;
-		novatek,irq-gpio = <&tlmm 67 0x2008>;
+		novatek,irq-gpio = <&tlmm 67 0x0>;
 		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
-		pinctrl-0 = <&ts_active>;
-		pinctrl-1 = <&ts_reset_suspend &ts_int_suspend>;
 		novatek,config-array-size = <2>;
 
 		/* MP */
@@ -631,16 +629,12 @@
 		synaptics,pwr-reg-name = "avdd";
 		synaptics,bus-reg-name = "vdd";
 		synaptics,ub-i2c-addr = <0x2c>;
-		synaptics,reset-gpio = <&tlmm 66 0x00>;
 		synaptics,irq-gpio = <&tlmm 67 0x2008>;
 		synaptics,irq-on-state = <0>;
 		synaptics,power-delay-ms = <200>;
 		synaptics,reset-delay-ms = <200>;
 		synaptics,reset-on-state = <0>;
 		synaptics,reset-active-ms = <20>;
-		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
-		pinctrl-0 = <&ts_active>;
-		pinctrl-1 = <&ts_reset_suspend &ts_int_suspend>;
 	};
 };
 

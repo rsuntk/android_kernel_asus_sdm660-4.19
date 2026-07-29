@@ -56,15 +56,10 @@
 		qcom,i2c-touch-active = "novatek, NVT-ts";
 		reg = <0x62>;
 		status = "okay";
-
 		vdd-supply = <&pm660_l11>;    //VDDIO
 		avdd-supply = <&pm660l_l3>;    //VDD
-        
-        novatek,reset-gpio = <&tlmm 66 0x00>;
-		novatek,irq-gpio = <&tlmm 67 0x2008>;
+		novatek,irq-gpio = <&tlmm 67 0x00>;
 		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
-		pinctrl-0 = <&ts_active>;
-        pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
 		novatek,config-array-size = <2>;
 
 		lcm_lab-supply = <&lcdb_ldo_vreg>;
@@ -529,7 +524,7 @@
 		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
 		himax,panel-coords = <0 1080 0 2280>;
 		himax,display-coords = <0 1080 0 2280>;
-		himax,irq-gpio = <&tlmm 67 0x2008>;
+		himax,irq-gpio = <&tlmm 67 0x00>;
 		himax,rst-gpio = <&tlmm 66 0x00>;
 		report_type = <1>;
 	};
