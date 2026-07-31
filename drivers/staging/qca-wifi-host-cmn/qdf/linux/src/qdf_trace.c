@@ -195,6 +195,14 @@ void qdf_trace_hex_dump(QDF_MODULE_ID module, QDF_TRACE_LEVEL level,
 	}
 }
 qdf_export_symbol(qdf_trace_hex_dump);
+#else
+
+/* No-opt qdf_trace_msg */
+void qdf_trace_msg(QDF_MODULE_ID module, QDF_TRACE_LEVEL level,
+                   const char *str_format, ...)
+{
+}
+qdf_export_symbol(qdf_trace_msg);
 
 #endif
 

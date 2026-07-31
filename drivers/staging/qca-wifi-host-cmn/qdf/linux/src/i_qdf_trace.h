@@ -277,13 +277,6 @@ static inline void __qdf_trace_hexdump_dummy(QDF_MODULE_ID module,
 
 #else
 
-/* This code will be used for compilation if tracing is to be compiled out */
-/* of the code so these functions/macros are 'do nothing' */
-static inline void qdf_trace_msg(QDF_MODULE_ID module, QDF_TRACE_LEVEL level,
-				 const char *str_format, ...)
-{
-}
-
 #define QDF_ASSERT(_condition)
 
 #endif
