@@ -330,9 +330,6 @@ out_micb_en:
 			/* Disable cs, pullup & enable micbias */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 		else
-#ifdef CONFIG_MACH_ASUS_X00TD
-		if (!wcd_swch_level_remove(mbhc))
-#endif
 			/* Disable micbias, pullup & enable cs */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
 		mutex_unlock(&mbhc->hphl_pa_lock);
@@ -351,9 +348,6 @@ out_micb_en:
 			/* Disable cs, pullup & enable micbias */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 		else
-#ifdef CONFIG_MACH_ASUS_X00TD
-		if (!wcd_swch_level_remove(mbhc))
-#endif
 			/* Disable micbias, pullup & enable cs */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
 		mutex_unlock(&mbhc->hphr_pa_lock);
@@ -366,9 +360,6 @@ out_micb_en:
 			/* Disable cs, pullup & enable micbias */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 		else
-#ifdef CONFIG_MACH_ASUS_X00TD
-		if (!wcd_swch_level_remove(mbhc))
-#endif
 			/* Disable micbias, enable pullup & cs */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_PULLUP);
 		break;
@@ -379,9 +370,6 @@ out_micb_en:
 			/* Disable cs, pullup & enable micbias */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 		else
-#ifdef CONFIG_MACH_ASUS_X00TD
-		if (!wcd_swch_level_remove(mbhc))
-#endif
 			/* Disable micbias, enable pullup & cs */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_PULLUP);
 		break;

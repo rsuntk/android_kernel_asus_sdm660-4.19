@@ -8,9 +8,6 @@
  */
 
 #include <linux/firmware.h>
-#ifdef CONFIG_MACH_ASUS_X00TD
-#include "mdss_dsi.h"
-#endif
 #include "nt36xxx.h"
 
 #define SIZE_4KB 4096
@@ -712,15 +709,7 @@ void Boot_Update_Firmware(struct work_struct *work)
 {
 	int32_t ret = 0;
 	char firmware_name[256] = "";
-
-#ifdef CONFIG_MACH_ASUS_X00TD
-	if (nvt_tp_check == 0)
-		sprintf(firmware_name, "novatek_ts_fw_dj.bin")
-	else
-		sprintf(firmware_name, "novatek_ts_fw_txd.bin");
-#else
 	sprintf(firmware_name, BOOT_UPDATE_FIRMWARE_NAME);
-#endif
 
 	ret = update_firmware_request(firmware_name);
 	if (ret)
