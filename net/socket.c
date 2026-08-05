@@ -3372,7 +3372,6 @@ static int compat_sock_ioctl_trans(struct file *file, struct socket *sock,
 	void __user *argp = compat_ptr(arg);
 	struct sock *sk = sock->sk;
 	struct net *net = sock_net(sk);
-	const struct proto_ops *ops;
 
 	if (cmd >= SIOCDEVPRIVATE && cmd <= (SIOCDEVPRIVATE + 15))
 		return compat_ifr_data_ioctl(net, cmd, argp);
