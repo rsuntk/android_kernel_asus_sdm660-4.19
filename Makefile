@@ -5,10 +5,6 @@ SUBLEVEL = 325
 EXTRAVERSION =
 NAME = "People's Front"
 
-ifeq ($(KCFLAGS),)
-export KCFLAGS=-w
-endif
-
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
