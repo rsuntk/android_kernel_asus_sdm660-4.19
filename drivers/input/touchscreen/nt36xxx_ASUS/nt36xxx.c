@@ -38,32 +38,6 @@ static struct wakeup_source *gesture_wakelock;
 #define NVT_GESTURE_MODE "tpd_gesture"
 
 static long gesture_mode = 0;
-static bool has_dt2w_cmdline __read_mostly = false;
-
-static int __init read_gesture_cmd(char *s)
-{
-	unsigned int val = 0;
-
-	if (!s) {
-		pr_err("NVT-ts: %s: cmdline setup is empty.\n", __func__);
-		goto skip;
-	}
-
-	// Should accept only 0 and 1 (boolean)
-	val = simple_strtoul(s, NULL, 0);
-	if (val > 0)
-		val = 1;
-
-	if (val == 1) {
-		pr_info("NVT-ts: DT2W is enabled by cmdline\n");
-		gesture_mode = 0x1FF;
-		WRITE_ONCE(has_dt2w_cmdline, true);
-	}
-
-skip:
-	return 1;
-}
-__setup("nvt_dt2w.enabled=", read_gesture_cmd);
 
 static ssize_t nvt_gesture_mode_get_proc(struct file *file, char __user *buffer,
 					 size_t size, loff_t *ppos)
@@ -80,31 +54,21 @@ static ssize_t nvt_gesture_mode_set_proc(struct file *filp,
 	char msg[20] = { 0 };
 	int ret = 0;
 
-	if (unlikely(READ_ONCE(has_dt2w_cmdline))) {
-		pr_err("cmdline overrides userspace!, disallow!\n");
-		return -EACCES;
-	}
-
-	if (!bTouchIsAwake) {
-		pr_debug("Touch is already sleep, cant modify gesture node\n");
+	if (!bTouchIsAwake)
 		return count;
-	}
 
 	ret = copy_from_user(msg, buffer, count);
-	if (ret) {
+	if (ret)
 		return -EFAULT;
-	}
 
 	ret = kstrtol(msg, 0, &gesture_mode);
 	if (!ret) {
-		if (gesture_mode == 0) {
+		if (gesture_mode == 0)
 			gesture_mode = 0;
-		} else {
+		else
 			gesture_mode = 0x1FF;
-		}
 	}
 
-	pr_debug("gesture_mode = 0x%x\n", (unsigned int)gesture_mode);
 	return count;
 }
 
@@ -156,7 +120,9 @@ inline void nvt_ts_wakeup_gesture_report(uint8_t gesture_id, uint8_t *data)
 	/* support fw specifal data protocol */
 	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
 		gesture_id = func_id;
-	} else if (gesture_id > DATA_PROTOCOL) {
+	}
+
+	if (gesture_id > DATA_PROTOCOL) {
 		return;
 	}
 
