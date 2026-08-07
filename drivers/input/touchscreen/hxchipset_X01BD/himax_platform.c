@@ -30,12 +30,11 @@ extern void himax_chip_common_deinit(void);
 extern void himax_platform_shutdown(void);
 /* Huaqin add for ZQL1820-701 by zhangxiude at 2018/9/19 end */
 
-
 int himax_dev_set(struct himax_ts_data *ts)
 {
 	int ret = 0;
-	ts->input_dev = input_allocate_device();
 
+	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		ret = -ENOMEM;
 		E("%s: Failed to allocate input device\n", __func__);
@@ -45,6 +44,7 @@ int himax_dev_set(struct himax_ts_data *ts)
 	ts->input_dev->name = "himax-touchscreen";
 	return ret;
 }
+
 int himax_input_register_device(struct input_dev *input_dev)
 {
 	return input_register_device(input_dev);
@@ -58,11 +58,11 @@ void himax_platform_key(void)
 #endif
 
 void himax_vk_parser(struct device_node *dt,
-						struct himax_i2c_platform_data *pdata)
+		     struct himax_i2c_platform_data *pdata)
 {
 	u32 data = 0;
 	uint8_t cnt = 0, i = 0;
-	uint32_t coords[4] = {0};
+	uint32_t coords[4] = { 0 };
 	struct device_node *node, *pp = NULL;
 	struct himax_virtual_key *vk;
 	node = of_parse_phandle(dt, "virtualkey", 0);
@@ -84,9 +84,12 @@ void himax_vk_parser(struct device_node *dt,
 			if (of_property_read_u32(pp, "idx", &data) == 0)
 				vk[i].index = data;
 
-			if (of_property_read_u32_array(pp, "range", coords, 4) == 0) {
-				vk[i].x_range_min = coords[0], vk[i].x_range_max = coords[1];
-				vk[i].y_range_min = coords[2], vk[i].y_range_max = coords[3];
+			if (of_property_read_u32_array(pp, "range", coords,
+						       4) == 0) {
+				vk[i].x_range_min = coords[0],
+				vk[i].x_range_max = coords[1];
+				vk[i].y_range_min = coords[2],
+				vk[i].y_range_max = coords[3];
 			} else {
 				I(" range faile\n");
 			}
@@ -97,16 +100,18 @@ void himax_vk_parser(struct device_node *dt,
 		pdata->virtual_key = vk;
 
 		for (i = 0; i < cnt; i++)
-			I(" vk[%d] idx:%d x_min:%d, y_max:%d\n", i, pdata->virtual_key[i].index,
-			  pdata->virtual_key[i].x_range_min, pdata->virtual_key[i].y_range_max);
+			I(" vk[%d] idx:%d x_min:%d, y_max:%d\n", i,
+			  pdata->virtual_key[i].index,
+			  pdata->virtual_key[i].x_range_min,
+			  pdata->virtual_key[i].y_range_max);
 	}
 }
 
 int himax_parse_dt(struct himax_ts_data *ts,
-					struct himax_i2c_platform_data *pdata)
+		   struct himax_i2c_platform_data *pdata)
 {
 	int rc, coords_size = 0;
-	uint32_t coords[4] = {0};
+	uint32_t coords[4] = { 0 };
 	struct property *prop;
 	struct device_node *dt = private_ts->client->dev.of_node;
 	u32 data = 0;
@@ -116,14 +121,19 @@ int himax_parse_dt(struct himax_ts_data *ts,
 		coords_size = prop->length / sizeof(u32);
 
 		if (coords_size != 4)
-			D(" %s:Invalid panel coords size %d\n", __func__, coords_size);
+			D(" %s:Invalid panel coords size %d\n", __func__,
+			  coords_size);
 	}
 
-	if (of_property_read_u32_array(dt, "himax,panel-coords", coords, coords_size) == 0) {
-		pdata->abs_x_min = coords[0], pdata->abs_x_max = (coords[1] - 1);
-		pdata->abs_y_min = coords[2], pdata->abs_y_max = (coords[3] - 1);
-		I(" DT-%s:panel-coords = %d, %d, %d, %d\n", __func__, pdata->abs_x_min,
-		  pdata->abs_x_max, pdata->abs_y_min, pdata->abs_y_max);
+	if (of_property_read_u32_array(dt, "himax,panel-coords", coords,
+				       coords_size) == 0) {
+		pdata->abs_x_min = coords[0],
+		pdata->abs_x_max = (coords[1] - 1);
+		pdata->abs_y_min = coords[2],
+		pdata->abs_y_max = (coords[3] - 1);
+		I(" DT-%s:panel-coords = %d, %d, %d, %d\n", __func__,
+		  pdata->abs_x_min, pdata->abs_x_max, pdata->abs_y_min,
+		  pdata->abs_y_max);
 	}
 
 	prop = of_find_property(dt, "himax,display-coords", NULL);
@@ -132,17 +142,19 @@ int himax_parse_dt(struct himax_ts_data *ts,
 		coords_size = prop->length / sizeof(u32);
 
 		if (coords_size != 4)
-			D(" %s:Invalid display coords size %d\n", __func__, coords_size);
+			D(" %s:Invalid display coords size %d\n", __func__,
+			  coords_size);
 	}
 
-	rc = of_property_read_u32_array(dt, "himax,display-coords", coords, coords_size);
+	rc = of_property_read_u32_array(dt, "himax,display-coords", coords,
+					coords_size);
 
 	if (rc && (rc != -EINVAL)) {
 		D(" %s:Fail to read display-coords %d\n", __func__, rc);
 		return rc;
 	}
 
-	pdata->screenWidth  = coords[1];
+	pdata->screenWidth = coords[1];
 	pdata->screenHeight = coords[3];
 	I(" DT-%s:display-coords = (%d, %d)\n", __func__, pdata->screenWidth,
 	  pdata->screenHeight);
@@ -164,7 +176,8 @@ int himax_parse_dt(struct himax_ts_data *ts,
 		I(" DT:gpio_3v3_en value is not valid\n");
 	}
 
-	I(" DT:gpio_irq=%d, gpio_rst=%d, gpio_3v3_en=%d\n", pdata->gpio_irq, pdata->gpio_reset, pdata->gpio_3v3_en);
+	I(" DT:gpio_irq=%d, gpio_rst=%d, gpio_3v3_en=%d\n", pdata->gpio_irq,
+	  pdata->gpio_reset, pdata->gpio_3v3_en);
 
 	if (of_property_read_u32(dt, "report_type", &data) == 0) {
 		pdata->protocol_type = data;
@@ -175,24 +188,23 @@ int himax_parse_dt(struct himax_ts_data *ts,
 	return 0;
 }
 
-int himax_bus_read(uint8_t command, uint8_t *data, uint32_t length, uint8_t toRetry)
+int himax_bus_read(uint8_t command, uint8_t *data, uint32_t length,
+		   uint8_t toRetry)
 {
 	int retry;
 	struct i2c_client *client = private_ts->client;
-	struct i2c_msg msg[] = {
-		{
-			.addr = client->addr,
-			.flags = 0,
-			.len = 1,
-			.buf = &command,
-		},
-		{
-			.addr = client->addr,
-			.flags = I2C_M_RD,
-			.len = length,
-			.buf = data,
-		}
-	};
+	struct i2c_msg msg[] = { {
+					 .addr = client->addr,
+					 .flags = 0,
+					 .len = 1,
+					 .buf = &command,
+				 },
+				 {
+					 .addr = client->addr,
+					 .flags = I2C_M_RD,
+					 .len = length,
+					 .buf = data,
+				 } };
 	mutex_lock(&private_ts->rw_lock);
 
 	for (retry = 0; retry < toRetry; retry++) {
@@ -203,8 +215,7 @@ int himax_bus_read(uint8_t command, uint8_t *data, uint32_t length, uint8_t toRe
 	}
 
 	if (retry == toRetry) {
-		E("%s: i2c_read_block retry over %d\n",
-		  __func__, toRetry);
+		E("%s: i2c_read_block retry over %d\n", __func__, toRetry);
 		i2c_error_count = toRetry;
 		mutex_unlock(&private_ts->rw_lock);
 		return -EIO;
@@ -214,7 +225,8 @@ int himax_bus_read(uint8_t command, uint8_t *data, uint32_t length, uint8_t toRe
 	return 0;
 }
 
-int himax_bus_write(uint8_t command, uint8_t *data, uint32_t length, uint8_t toRetry)
+int himax_bus_write(uint8_t command, uint8_t *data, uint32_t length,
+		    uint8_t toRetry)
 {
 	int retry;
 	uint8_t *buf;
@@ -244,8 +256,7 @@ int himax_bus_write(uint8_t command, uint8_t *data, uint32_t length, uint8_t toR
 	}
 
 	if (retry == toRetry) {
-		E("%s: i2c_write_block retry over %d\n",
-		  __func__, toRetry);
+		E("%s: i2c_write_block retry over %d\n", __func__, toRetry);
 		i2c_error_count = toRetry;
 		mutex_unlock(&private_ts->rw_lock);
 		kfree(buf);
@@ -291,8 +302,7 @@ int himax_bus_master_write(uint8_t *data, uint32_t length, uint8_t toRetry)
 	}
 
 	if (retry == toRetry) {
-		E("%s: i2c_write_block retry over %d\n",
-		  __func__, toRetry);
+		E("%s: i2c_write_block retry over %d\n", __func__, toRetry);
 		i2c_error_count = toRetry;
 		mutex_unlock(&private_ts->rw_lock);
 		kfree(buf);
@@ -342,8 +352,7 @@ static int himax_regulator_configure(struct himax_i2c_platform_data *pdata)
 	pdata->vcc_dig = regulator_get(&client->dev, "vdd");
 
 	if (IS_ERR(pdata->vcc_dig)) {
-		E("%s: Failed to get regulator vdd\n",
-		  __func__);
+		E("%s: Failed to get regulator vdd\n", __func__);
 		retval = PTR_ERR(pdata->vcc_dig);
 		return retval;
 	}
@@ -351,8 +360,7 @@ static int himax_regulator_configure(struct himax_i2c_platform_data *pdata)
 	pdata->vcc_ana = regulator_get(&client->dev, "avdd");
 
 	if (IS_ERR(pdata->vcc_ana)) {
-		E("%s: Failed to get regulator avdd\n",
-		  __func__);
+		E("%s: Failed to get regulator avdd\n", __func__);
 		retval = PTR_ERR(pdata->vcc_ana);
 		regulator_put(pdata->vcc_ana);
 		return retval;
@@ -369,8 +377,7 @@ static int himax_power_on(struct himax_i2c_platform_data *pdata, bool on)
 		retval = regulator_enable(pdata->vcc_dig);
 
 		if (retval) {
-			E("%s: Failed to enable regulator vdd\n",
-			  __func__);
+			E("%s: Failed to enable regulator vdd\n", __func__);
 			return retval;
 		}
 
@@ -378,8 +385,7 @@ static int himax_power_on(struct himax_i2c_platform_data *pdata, bool on)
 		retval = regulator_enable(pdata->vcc_ana);
 
 		if (retval) {
-			E("%s: Failed to enable regulator avdd\n",
-			  __func__);
+			E("%s: Failed to enable regulator avdd\n", __func__);
 			regulator_disable(pdata->vcc_dig);
 			return retval;
 		}
@@ -409,8 +415,7 @@ int himax_gpio_power_config(struct himax_i2c_platform_data *pdata)
 		error = gpio_request(pdata->gpio_reset, "hmx_reset_gpio");
 
 		if (error) {
-			E("unable to request gpio [%d]\n",
-			  pdata->gpio_reset);
+			E("unable to request gpio [%d]\n", pdata->gpio_reset);
 			goto err_regulator_on;
 		}
 
@@ -436,8 +441,7 @@ int himax_gpio_power_config(struct himax_i2c_platform_data *pdata)
 		error = gpio_request(pdata->gpio_irq, "hmx_gpio_irq");
 
 		if (error) {
-			E("unable to request gpio [%d]\n",
-			  pdata->gpio_irq);
+			E("unable to request gpio [%d]\n", pdata->gpio_irq);
 			goto err_power_on;
 		}
 
@@ -539,7 +543,8 @@ int himax_gpio_power_config(struct himax_i2c_platform_data *pdata)
 		error = gpio_direction_input(pdata->gpio_irq);
 
 		if (error) {
-			E("unable to set direction for gpio [%d]\n", pdata->gpio_irq);
+			E("unable to set direction for gpio [%d]\n",
+			  pdata->gpio_irq);
 			return error;
 		}
 
@@ -574,16 +579,17 @@ static void himax_ts_isr_func(struct himax_ts_data *ts)
 	irqnum = private_ts->client->irq;
 	disable_irq_nosync(irqnum);
 #ifdef HX_SMART_WAKEUP
-	if(ts->suspended) {
-		__pm_wakeup_event(ts->ts_SMWP_wake_lock, msecs_to_jiffies(5000));
+	if (ts->suspended) {
+		__pm_wakeup_event(ts->ts_SMWP_wake_lock,
+				  msecs_to_jiffies(5000));
 	}
 #endif
-//Huaqin add for ESD test bu xudongfang at 2018/11/05 start
-	if(private_ts->is_esd_event)
+	//Huaqin add for ESD test bu xudongfang at 2018/11/05 start
+	if (private_ts->is_esd_event)
 		himax_ts_work(ts);
 	else
 		queue_work(ts->himax_wq, &ts->work);
-//Huaqin add for ESD test bu xudongfang at 2018/11/05 end
+	//Huaqin add for ESD test bu xudongfang at 2018/11/05 end
 }
 /* Huaqin add for ZQL1820-861 by zhangxiude at 2018/10/16 end */
 
@@ -596,7 +602,8 @@ irqreturn_t himax_ts_thread(int irq, void *ptr)
 
 static void himax_ts_work_func(struct work_struct *work)
 {
-	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
+	struct himax_ts_data *ts =
+		container_of(work, struct himax_ts_data, work);
 	himax_ts_work(ts);
 }
 
@@ -608,12 +615,16 @@ int himax_int_register_trigger(void)
 
 	if (ic_data->HX_INT_IS_EDGE) {
 		I("%s edge triiger falling\n ", __func__);
-		ret = request_threaded_irq(client->irq, NULL, himax_ts_thread, IRQF_TRIGGER_FALLING | IRQF_ONESHOT, client->name, ts);
+		ret = request_threaded_irq(client->irq, NULL, himax_ts_thread,
+					   IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+					   client->name, ts);
 	}
 
 	else {
 		I("%s level trigger low\n ", __func__);
-		ret = request_threaded_irq(client->irq, NULL, himax_ts_thread, IRQF_TRIGGER_LOW | IRQF_ONESHOT, client->name, ts);
+		ret = request_threaded_irq(client->irq, NULL, himax_ts_thread,
+					   IRQF_TRIGGER_LOW | IRQF_ONESHOT,
+					   client->name, ts);
 	}
 
 	return ret;
@@ -633,19 +644,21 @@ int himax_ts_register_interrupt(void)
 	int ret = 0;
 	ts->irq_enabled = 0;
 	/* Huaqin add for ZQL1820-861 by zhangxiude at 2018/10/16 start */
-	ts->himax_wq = create_singlethread_workqueue("himax_touch");// wdd modify for irq timeout
+	ts->himax_wq = create_singlethread_workqueue(
+		"himax_touch"); // wdd modify for irq timeout
 	INIT_WORK(&ts->work, himax_ts_work_func);
 	/* Huaqin add for ZQL1820-861 by zhangxiude at 2018/10/16 end */
 
 	/* Work functon */
-	if (client->irq) {/*INT mode*/
+	if (client->irq) { /*INT mode*/
 		ts->use_irq = 1;
 		ret = himax_int_register_trigger();
 
 		if (ret == 0) {
 			ts->irq_enabled = 1;
 			irq_enable_count = 1;
-			I("%s: irq enabled at qpio: %d\n", __func__, client->irq);
+			I("%s: irq enabled at qpio: %d\n", __func__,
+			  client->irq);
 #ifdef HX_SMART_WAKEUP
 			irq_set_irq_wake(client->irq, 1);
 #endif
@@ -657,7 +670,7 @@ int himax_ts_register_interrupt(void)
 		I("%s: client->irq is empty, use polling mode.\n", __func__);
 	}
 
-	if (!ts->use_irq) {/*if use polling mode need to disable HX_ESD_RECOVERY function*/
+	if (!ts->use_irq) { /*if use polling mode need to disable HX_ESD_RECOVERY function*/
 		/* Huaqin add for ZQL1820-861 by zhangxiude at 2018/10/16 start */
 		//ts->himax_wq = create_singlethread_workqueue("himax_touch");
 		//INIT_WORK(&ts->work, himax_ts_work_func);
@@ -697,13 +710,13 @@ int fb_himax_common_resume(void *data)
 /* Huaqin add for resume kthread limengxia at 2018/10/18 start */
 
 #if defined(CONFIG_FB)
-int fb_notifier_callback(struct notifier_block *self,
-							unsigned long event, void *data)
+int fb_notifier_callback(struct notifier_block *self, unsigned long event,
+			 void *data)
 {
 	struct fb_event *evdata = data;
 	int *blank;
 	struct himax_ts_data *ts =
-	    container_of(self, struct himax_ts_data, fb_notif);
+		container_of(self, struct himax_ts_data, fb_notif);
 	I(" %s\n", __func__);
 
 	if (evdata && evdata->data && event == FB_EVENT_BLANK && ts &&
@@ -713,7 +726,8 @@ int fb_notifier_callback(struct notifier_block *self,
 		switch (*blank) {
 		case FB_BLANK_UNBLANK:
 			/* Huaqin add for resume kthread limengxia at 2018/10/18 start */
-			kthread_run(fb_himax_common_resume,&ts->client->dev,"tp_resume");
+			kthread_run(fb_himax_common_resume, &ts->client->dev,
+				    "tp_resume");
 			/* Huaqin add for resume kthread limengxia at 2018/10/18 end */
 			break;
 		case FB_BLANK_POWERDOWN:
@@ -729,7 +743,8 @@ int fb_notifier_callback(struct notifier_block *self,
 }
 #endif
 
-int himax_chip_common_probe(struct i2c_client *client, const struct i2c_device_id *id)
+int himax_chip_common_probe(struct i2c_client *client,
+			    const struct i2c_device_id *id)
 {
 	int ret = 0;
 	struct himax_ts_data *ts;
@@ -758,8 +773,8 @@ int himax_chip_common_probe(struct i2c_client *client, const struct i2c_device_i
 
 	ret = himax_chip_common_init();
 
-	err_alloc_data_failed:
-	err_check_functionality_failed:
+err_alloc_data_failed:
+err_check_functionality_failed:
 
 	return ret;
 }
@@ -779,21 +794,20 @@ void himax_chip_common_shutdown(struct i2c_client *client)
 }
 /* Huaqin add for ZQL1820-701 by zhangxiude at 2018/9/19 end */
 
-static const struct i2c_device_id himax_common_ts_id[] = {
-	{HIMAX_common_NAME, 0 },
-	{}
-};
+static const struct i2c_device_id himax_common_ts_id[] = { { HIMAX_common_NAME,
+							     0 },
+							   {} };
 
 static const struct dev_pm_ops himax_common_pm_ops = {
 #if (!defined(CONFIG_FB))
 	.suspend = himax_common_suspend,
-	.resume  = himax_common_resume,
+	.resume = himax_common_resume,
 #endif
 };
 
 #ifdef CONFIG_OF
 static struct of_device_id himax_match_table[] = {
-	{.compatible = "himax,hxcommon" },
+	{ .compatible = "himax,hxcommon" },
 	{},
 };
 #else
@@ -835,4 +849,3 @@ module_exit(himax_common_exit);
 
 MODULE_DESCRIPTION("Himax_common driver");
 MODULE_LICENSE("GPL");
-
