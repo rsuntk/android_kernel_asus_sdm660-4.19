@@ -20,11 +20,11 @@
 
 #if defined(HX_AUTO_UPDATE_FW) || defined(HX_ZERO_FLASH)
 #ifdef HX_EN_DYNAMIC_NAME
-#define hx83112_ic_b9_en   0x300B9000
-#define hx83112_ic_eb_en   0x300EB000
-#define hx83112_ic_osc_en  0x900880A8
-#define hx83112_ic_osc_pw  0x900880E0
-#define hx83112_e8_ic_fw   0x300E8006
-#define hx83112_cb_ic_fw   0x300CB008
+#define hx83112_ic_b9_en 0x300B9000
+#define hx83112_ic_eb_en 0x300EB000
+#define hx83112_ic_osc_en 0x900880A8
+#define hx83112_ic_osc_pw 0x900880E0
+#define hx83112_e8_ic_fw 0x300E8006
+#define hx83112_cb_ic_fw 0x300CB008
 #endif
 #endif
