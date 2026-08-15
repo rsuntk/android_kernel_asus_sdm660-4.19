@@ -1788,6 +1788,19 @@ static int mdss_fb_pm_resume(struct device *dev)
 
 #ifdef CONFIG_MACH_ASUS_SDM660
 	rc = mdss_fb_resume_sub(mfd);
+
+#ifdef CONFIG_MACH_ASUS_X00TD
+		if (g_resume_from_fp && mfd->index == 0) {
+			if (!mfd->early_unblank_work_queued) {
+				pr_err("[Display] doing unblank from resume, due to fp.\n");
+				mfd->early_unblank_work_queued = true;
+                queue_delayed_work(asus_lcd_early_unblank_wq, &mfd->early_unblank_work, 0);
+			} else {
+				pr_err("[Display] mfd->early_unblank_work_queued returns true.\n");
+		}
+	}
+#endif
+
 #ifdef CONFIG_FOCALTECH_FINGERPRINT
 	if (focal_detect_flag == 0) {
 		if (g_resume_from_fp && mfd->index == 0) {
