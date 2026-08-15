@@ -18,6 +18,8 @@ source "drivers/input/fingerprint/cdfingerfp/Kconfig"
 
 source "drivers/input/fingerprint/focaltech/Kconfig"
 
+source "drivers/input/fingerprint/goodix/Kconfig"
+
 endif
 
 endif
