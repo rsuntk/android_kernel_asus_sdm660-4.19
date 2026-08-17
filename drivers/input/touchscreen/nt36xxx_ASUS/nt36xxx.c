@@ -40,33 +40,39 @@ static struct wakeup_source *gesture_wakelock;
 static long gesture_mode = 0;
 
 static ssize_t nvt_gesture_mode_get_proc(struct file *file, char __user *buffer,
-					 size_t size, loff_t *ppos)
+					  size_t size, loff_t *ppos)
 {
-	char ptr[64] = { 0 };
-	size_t len = (gesture_mode == 0) ? sprintf(ptr, "0\n") : sprintf(ptr, "1\n");
+	char ptr[16];
+	size_t len;
+
+	len = scnprintf(ptr, sizeof(ptr), "%d\n", gesture_mode ? 1 : 0);
 	return simple_read_from_buffer(buffer, size, ppos, ptr, len);
 }
 
 static ssize_t nvt_gesture_mode_set_proc(struct file *filp,
-					 const char __user *buffer,
-					 size_t count, loff_t *off)
+					  const char __user *buffer,
+					  size_t count, loff_t *off)
 {
 	char msg[20] = { 0 };
+	long mode_val = 0;
 	int ret = 0;
 
-	if (!bTouchIsAwake)
-		return count;
+	if (count >= sizeof(msg))
+		return -EINVAL;
 
-	ret = copy_from_user(msg, buffer, count);
-	if (ret)
+	if (copy_from_user(msg, buffer, count))
 		return -EFAULT;
 
-	ret = kstrtol(msg, 0, &gesture_mode);
-	if (!ret) {
-		if (gesture_mode == 0)
-			gesture_mode = 0;
-		else
-			gesture_mode = 0x1FF;
+	msg[count] = '\0';
+
+	ret = kstrtol(msg, 10, &mode_val);
+	if (ret)
+		return ret;
+
+	if (mode_val == 0) {
+		gesture_mode = 0;
+	} else {
+		gesture_mode = 0x1FF;	
 	}
 
 	return count;
@@ -120,9 +126,7 @@ inline void nvt_ts_wakeup_gesture_report(uint8_t gesture_id, uint8_t *data)
 	/* support fw specifal data protocol */
 	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
 		gesture_id = func_id;
-	}
-
-	if (gesture_id > DATA_PROTOCOL) {
+	} else if (gesture_id > DATA_PROTOCOL) {
 		return;
 	}
 
