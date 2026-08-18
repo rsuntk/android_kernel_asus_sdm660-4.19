@@ -53,26 +53,16 @@ static ssize_t nvt_gesture_mode_set_proc(struct file *filp,
 					  const char __user *buffer,
 					  size_t count, loff_t *off)
 {
-	char msg[20] = { 0 };
-	long mode_val = 0;
 	int ret = 0;
+	long mode_val = 0;
 
-	if (count >= sizeof(msg))
-		return -EINVAL;
-
-	if (copy_from_user(msg, buffer, count))
-		return -EFAULT;
-
-	msg[count] = '\0';
-
-	ret = kstrtol(msg, 10, &mode_val);
-	if (ret)
-		return ret;
-
-	if (mode_val == 0) {
-		gesture_mode = 0;
-	} else {
-		gesture_mode = 0x1FF;	
+	ret = kstrtol_from_user(buffer, count, 0, &mode_val);
+	if (!ret) {
+		if (mode_val == 0) {
+			gesture_mode = 0;
+		} else {
+			gesture_mode = 0x1FF;	
+		}
 	}
 
 	return count;
