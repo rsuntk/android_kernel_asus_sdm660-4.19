@@ -285,11 +285,13 @@ static void __always_inline nvt_irq_enable(bool enable)
 	if (enable) {
 		if (!ts->irq_enabled) {
 			enable_irq(ts->client->irq);
+			enable_irq_wake(ts->client->irq);
 			ts->irq_enabled = true;
 		}
 	} else {
 		if (ts->irq_enabled) {
 			disable_irq(ts->client->irq);
+			disable_irq_wake(ts->client->irq);
 			ts->irq_enabled = false;
 		}
 	}
