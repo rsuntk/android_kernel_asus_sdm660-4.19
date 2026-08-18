@@ -1112,27 +1112,22 @@ struct synaptics_rmi4_data *syna_rmi4_data;
 static ssize_t syna_gesture_mode_get_proc(struct file *file,
                         char __user *buffer, size_t size, loff_t *ppos)
 {
-	char ptr[64];
-	unsigned int len = 0;
-	unsigned int ret = 0;
+	char ptr[16];
+	size_t len;
 
-	if (syna_gesture_mode == 0) {
-		len = sprintf(ptr, "0\n");
-	} else {
-		len = sprintf(ptr, "1\n");
-	}
-	ret = simple_read_from_buffer(buffer, size, ppos, ptr, (size_t)len);
-	return ret;
+	len = scnprintf(ptr, sizeof(ptr), "%d\n", syna_gesture_mode ? 1 : 0);
+	return simple_read_from_buffer(buffer, size, ppos, ptr, len);
 }
 
 static ssize_t syna_gesture_mode_set_proc(struct file *filp,
                         const char __user *buffer, size_t count, loff_t *off)
 {
 	int ret = 0;
+	long mode_val = 0;
 
-	ret = kstrtol_from_user(buffer, count, 0, &syna_gesture_mode);
+	ret = kstrtol_from_user(buffer, count, 0, &mode_val);
 	if (!ret) {
-		if (syna_gesture_mode == 0) {
+		if (mode_val == 0) {
 			syna_gesture_mode = 0;
 			syna_rmi4_data->enable_wakeup_gesture = 0;
 		} else {
@@ -1140,10 +1135,6 @@ static ssize_t syna_gesture_mode_set_proc(struct file *filp,
 			syna_rmi4_data->enable_wakeup_gesture = 1;
 		}
 	}
-	else {
-		pr_err("set gesture mode failed\n");
-	}
-	pr_err("syna_gesture_mode = 0x%x, enable_wakeup_gesture = %d \n", (unsigned int)syna_gesture_mode, syna_rmi4_data->enable_wakeup_gesture);
 
 	return count;
 }
