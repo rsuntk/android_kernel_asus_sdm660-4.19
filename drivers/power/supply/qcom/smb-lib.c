@@ -1339,7 +1339,7 @@ static int smblib_hvdcp_enable_vote_callback(struct votable *votable,
 	 * This ensures only qc 2.0 detection runs but no vbus
 	 * negotiation happens.
 	 */
-	if (!hvdcp_enable || IS_ENABLED(CONFIG_MACH_ASUS_SDM660))
+	if (!hvdcp_enable || IS_ENABLED(CONFIG_MACH_ASUS_X00TD))
 		val = HVDCP_EN_BIT;
 
 	rc = smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
