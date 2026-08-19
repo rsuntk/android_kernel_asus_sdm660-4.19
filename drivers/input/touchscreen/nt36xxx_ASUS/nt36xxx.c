@@ -61,7 +61,7 @@ static ssize_t nvt_gesture_mode_set_proc(struct file *filp,
 		if (mode_val == 0) {
 			gesture_mode = 0;
 		} else {
-			gesture_mode = 0x1FF;	
+			gesture_mode = 0x1FF;
 		}
 	}
 
@@ -257,7 +257,7 @@ static int nvt_lcm_power_source_ctrl(struct nvt_ts_data *data, int enable)
 			} else
 				atomic_dec(&data->lcm_ibb_power);
 		} else {
-			if (atomic_dec_return(&(data->lcm_lab_power)) == 0) {
+			if (atomic_dec_return(&data->lcm_lab_power) == 0) {
 				rc = regulator_disable(data->lcm_lab);
 				if (rc)
 					atomic_inc(&data->lcm_lab_power);
@@ -271,8 +271,7 @@ static int nvt_lcm_power_source_ctrl(struct nvt_ts_data *data, int enable)
 			} else
 				atomic_inc(&data->lcm_ibb_power);
 		}
-	} else
-		pr_debug("Regulator lcm_ibb or lcm_lab is invalid");
+	}
 
 	return 0;
 }
@@ -280,8 +279,6 @@ static int nvt_lcm_power_source_ctrl(struct nvt_ts_data *data, int enable)
 
 static void __always_inline nvt_irq_enable(bool enable)
 {
-	struct irq_desc *desc;
-
 	if (enable) {
 		if (!ts->irq_enabled) {
 			enable_irq(ts->client->irq);
@@ -295,8 +292,6 @@ static void __always_inline nvt_irq_enable(bool enable)
 			ts->irq_enabled = false;
 		}
 	}
-
-	desc = irq_to_desc(ts->client->irq);
 }
 
 inline int32_t CTP_I2C_READ(struct i2c_client *client, uint16_t address,
@@ -749,9 +744,6 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
 {
 	int32_t ret = 0;
-#if WAKEUP_GESTURE
-	int32_t retry = 0;
-#endif
 
 	ts = kmalloc(sizeof(struct nvt_ts_data), GFP_KERNEL);
 	if (ts == NULL)
@@ -806,8 +798,7 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
 	ts->int_trigger_type = INT_TRIGGER_TYPE;
 
-	ts->input_dev->evbit[0] =
-		BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+	ts->input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 	ts->input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
 
@@ -824,13 +815,16 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 #endif
 
 #if WAKEUP_GESTURE
-	for (retry = 0; retry < ARRAY_SIZE(gesture_key_array); retry++) {
-		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
+	{
+		int i;
+		for (i = 0; i < ARRAY_SIZE(gesture_key_array); i++) {
+			input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[i]);
+		}
+		gesture_wakelock = wakeup_source_register(NULL, "poll-wake-lock");
 	}
-	gesture_wakelock = wakeup_source_register(NULL, "poll-wake-lock");
 #endif
 
-	sprintf(ts->phys, "input/ts");
+	snprintf(ts->phys, sizeof(ts->phys), "input/ts");
 	ts->input_dev->name = NVT_TS_NAME;
 	ts->input_dev->phys = ts->phys;
 	ts->input_dev->id.bustype = BUS_I2C;
@@ -842,13 +836,13 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	//---set int-pin & request irq---
 	client->irq = gpio_to_irq(ts->irq_gpio);
 	if (client->irq) {
-		ts->irq_enabled = true;
 		ret = request_threaded_irq(client->irq, NULL, nvt_ts_work_func,
 				ts->int_trigger_type | IRQF_ONESHOT, NVT_I2C_NAME, ts);
 		if (ret != 0) 
 			goto err_int_request_failed;
-		else
-			nvt_irq_enable(false);
+
+		disable_irq_nosync(client->irq);
+		ts->irq_enabled = false;
 	}
 
 #if WAKEUP_GESTURE
@@ -882,7 +876,6 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	return 0;
 
 err_register_fb_notif_failed:
-	fb_unregister_client(&ts->fb_notif);
 #if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
