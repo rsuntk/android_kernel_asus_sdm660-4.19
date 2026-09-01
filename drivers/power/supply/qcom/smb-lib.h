@@ -348,9 +348,11 @@ struct smb_charger {
 	u8			float_cfg;
 	bool			use_extcon;
 	bool			otg_present;
+#ifdef CONFIG_MACH_ASUS_X00TD
 	/* ASUS X00TD BSP */
 	bool			x00td_otg_active;
 	bool			x00td_charging_flow_active;
+#endif
 	bool			is_audio_adapter;
 	bool			disable_stat_sw_override;
 	bool			in_chg_lock;

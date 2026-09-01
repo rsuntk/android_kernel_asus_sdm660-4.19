@@ -1693,9 +1693,11 @@ static int _smblib_vbus_regulator_enable(struct regulator_dev *rdev)
 			smblib_err(chg, "Couldn't enable OTG rc=%d\n", rc);
 	}
 
+#ifdef CONFIG_MACH_ASUS_X00TD
 	/* ASUS BSP: mark OTG as active */
 	if (rc >= 0)
 		chg->x00td_otg_active = true;
+#endif
 
 	return rc;
 }
@@ -1761,8 +1763,10 @@ static int _smblib_vbus_regulator_disable(struct regulator_dev *rdev)
 		return rc;
 	}
 
+#ifdef CONFIG_MACH_ASUS_X00TD
 	/* ASUS BSP: mark OTG as inactive */
 	chg->x00td_otg_active = false;
+#endif
 
 	return 0;
 }
@@ -3635,7 +3639,7 @@ static void smblib_micro_usb_plugin(struct smb_charger *chg, bool vbus_rising)
 	if (vbus_rising) {
 		/* use the typec flag even though its not typec */
 		chg->typec_present = true;
-
+#ifdef CONFIG_MACH_ASUS_X00TD
 		/*
 		 * ASUS BSP (from 4.4):
 		 * Protect against double-triggering of charging flow.
@@ -3648,9 +3652,12 @@ static void smblib_micro_usb_plugin(struct smb_charger *chg, bool vbus_rising)
 			smblib_dbg(chg, PR_MISC,
 				   "X00TD: charger plugged, starting flow\n");
 		}
+#endif
 	} else {
 		chg->typec_present = false;
+#ifdef CONFIG_MACH_ASUS_X00TD
 		chg->x00td_charging_flow_active = false;
+#endif
 		smblib_update_usb_type(chg);
 		extcon_set_state_sync(chg->extcon, EXTCON_USB, false);
 		smblib_uusb_removal(chg);
@@ -3722,6 +3729,7 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 
 	vbus_rising = (bool)(stat & USBIN_PLUGIN_RT_STS_BIT);
 
+#ifdef CONFIG_MACH_ASUS_X00TD
 	/*
 	 * ASUS BSP (from 4.4):
 	 * When OTG boost is active, VBUS rising is caused by our own 5V.
@@ -3733,6 +3741,7 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 			   "X00TD: ignore self VBUS while OTG active\n");
 		return;
 	}
+#endif
 
 	smblib_set_opt_freq_buck(chg, vbus_rising ? chg->chg_freq.freq_5V :
 						chg->chg_freq.freq_removal);
@@ -4161,6 +4170,7 @@ irqreturn_t smblib_handle_usb_source_change(int irq, void *data)
 	int rc = 0;
 	u8 stat;
 
+#ifdef CONFIG_MACH_ASUS_X00TD
 	/*
 	 * ASUS BSP (from 4.4):
 	 * While OTG boost is active, block APSD charger type detection.
@@ -4171,6 +4181,7 @@ irqreturn_t smblib_handle_usb_source_change(int irq, void *data)
 			   "X00TD: ignore source change while OTG active\n");
 		return IRQ_HANDLED;
 	}
+#endif
 
 	if (chg->fake_usb_insertion)
 		return IRQ_HANDLED;
@@ -4909,11 +4920,13 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 {
 	struct smb_charger *chg = container_of(work, struct smb_charger,
 						uusb_otg_work.work);
-	union power_supply_propval pval = { 0, };
 	int rc;
 	u8 stat;
-	bool usb_present = false;
 	bool otg;
+#ifdef CONFIG_MACH_ASUS_X00TD
+	union power_supply_propval pval = { 0, };
+	bool usb_present = false;
+#endif
 
 	rc = smblib_read(chg, TYPE_C_STATUS_3_REG, &stat);
 	if (rc < 0) {
@@ -4921,6 +4934,7 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 		goto out;
 	}
 
+#ifdef CONFIG_MACH_ASUS_X00TD
 	rc = smblib_get_prop_usb_present(chg, &pval);
 	if (rc >= 0)
 		usb_present = !!pval.intval;
@@ -4937,6 +4951,10 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 		extcon_set_state_sync(chg->extcon, EXTCON_USB, usb_present);
 		chg->otg_present = false;
 	}
+#else
+	otg = !!(stat & (U_USB_GND_NOVBUS_BIT | U_USB_GND_BIT));
+	extcon_set_state_sync(chg->extcon, EXTCON_USB_HOST, otg);
+#endif
 
 	smblib_dbg(chg, PR_REGISTER,
 		   "TYPE_C_STATUS_3=0x%02x usb=%d OTG=%d\n",
