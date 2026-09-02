@@ -275,6 +275,8 @@ done:
 
 static const struct clk_bulk_data dwc3_core_clks[] = {
 	{ .id = "ref" },
+	{ .id = "bus_early" },
+	{ .id = "suspend" },
 };
 
 /*
