@@ -27,7 +27,6 @@
 
 #ifdef CONFIG_SMP
 static inline bool task_fits_max(struct task_struct *p, int cpu);
-static inline unsigned long boosted_task_util(struct task_struct *task);
 #endif /* CONFIG_SMP */
 
 /*
@@ -61,7 +60,7 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_L
 unsigned int sysctl_sched_base_slice			= 700000ULL;
 static unsigned int normalized_sysctl_sched_base_slice	= 700000ULL;
 
-const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
+const_debug unsigned int sysctl_sched_migration_cost	= 0UL;
 DEFINE_PER_CPU_READ_MOSTLY(int, sched_load_boost);
 
 int sched_thermal_decay_shift;
@@ -668,9 +667,9 @@ __sum_w_vruntime_add(struct cfs_rq *cfs_rq, struct sched_entity *se)
 static void
 sum_w_vruntime_add_paranoid(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-	struct rb_node *node;
 	unsigned long weight;
 	s64 key, tmp;
+	struct rb_node *node;
 
 again:
 	weight = avg_vruntime_weight(cfs_rq, se->load.weight);
@@ -12319,6 +12318,7 @@ static void _nohz_idle_balance(struct rq *this_rq, unsigned int flags,
 	unsigned long next_balance = now + 60*HZ;
 	bool has_blocked_load = false;
 	int update_next_balance = 0;
+	int this_cpu = this_rq->cpu;
 	int balance_cpu;
 	struct rq *rq;
 
@@ -12354,7 +12354,7 @@ static void _nohz_idle_balance(struct rq *this_rq, unsigned int flags,
 		 * work being done for other CPUs. Next load
 		 * balancing owner will pick it up.
 		 */
-		if (need_resched()) {
+		if (!idle_cpu(this_cpu) && need_resched()) {
 			if (flags & NOHZ_STATS_KICK)
 				has_blocked_load = true;
 			if (flags & NOHZ_NEXT_KICK)
