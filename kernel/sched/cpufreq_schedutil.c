@@ -13,10 +13,6 @@
 #include "sched.h"
 #include "pelt.h"
 
-#include <linux/sched/cpufreq.h>
-#include <trace/events/power.h>
-#include <linux/sched/sysctl.h>
-
 #define IOWAIT_BOOST_MIN	(SCHED_CAPACITY_SCALE / 8)
 
 struct sugov_tunables {

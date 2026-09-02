@@ -5,7 +5,7 @@
  */
 
 #if SCHED_FEAT_TTWU_QUEUE
-void sched_ttwu_pending(void *arg)
+extern void sched_ttwu_pending(void *arg);
 #else
 static inline void sched_ttwu_pending(void *arg) { }
 #endif
