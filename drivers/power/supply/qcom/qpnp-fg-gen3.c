@@ -855,12 +855,14 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 		fg->bp.vbatt_full_mv = -EINVAL;
 	}
 
+#ifndef CONFIG_MACH_ASUS_SDM660
 	rc = of_property_read_u32(profile_node, "qcom,nom-batt-capacity-mah",
 			&fg->bp.nom_cap_uah);
 	if (rc < 0) {
 		pr_err("battery nominal capacity unavailable, rc:%d\n", rc);
 		fg->bp.nom_cap_uah = -EINVAL;
 	}
+#endif
 
 	data = of_get_property(profile_node, "qcom,fg-profile-data", &len);
 	if (!data) {
@@ -3709,10 +3711,14 @@ static int fg_psy_get_property(struct power_supply *psy,
 		rc = fg_get_sram_prop(fg, FG_SRAM_OCV, &pval->intval);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+#ifndef CONFIG_MACH_ASUS_SDM660
 		if (fg->bp.nom_cap_uah != -EINVAL)
 			pval->intval = fg->bp.nom_cap_uah * 1000;
 		else
 			pval->intval = chip->cl.nom_cap_uah;
+#else
+		pval->intval = chip->cl.nom_cap_uah;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_RESISTANCE_ID:
 		pval->intval = fg->batt_id_ohms;
@@ -4430,6 +4436,7 @@ static int fg_hw_init(struct fg_dev *fg)
 	return 0;
 }
 
+#ifndef CONFIG_MACH_ASUS_SDM660
 static int fg_adjust_timebase(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -4464,6 +4471,7 @@ static int fg_adjust_timebase(struct fg_dev *fg)
 
 	return 0;
 }
+#endif
 
 /* INTERRUPT HANDLERS STAY HERE */
 
@@ -4576,9 +4584,11 @@ static irqreturn_t fg_delta_batt_temp_irq_handler(int irq, void *data)
 	fg->health = prop.intval;
 
 	if (fg->last_batt_temp != batt_temp) {
+#ifndef CONFIG_MACH_ASUS_SDM660
 		rc = fg_adjust_timebase(fg);
 		if (rc < 0)
 			pr_err("Error in adjusting timebase, rc=%d\n", rc);
+#endif
 
 		rc = fg_adjust_recharge_voltage(fg);
 		if (rc < 0)
@@ -4654,9 +4664,11 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	if (rc < 0)
 		pr_err("Error in validating ESR, rc=%d\n", rc);
 
+#ifndef CONFIG_MACH_ASUS_SDM660
 	rc = fg_adjust_timebase(fg);
 	if (rc < 0)
 		pr_err("Error in adjusting timebase, rc=%d\n", rc);
+#endif
 
 	if (batt_psy_initialized(fg))
 		power_supply_changed(fg->batt_psy);
@@ -5683,7 +5695,16 @@ static void fg_gen3_shutdown(struct platform_device *pdev)
 	struct fg_gen3_chip *chip = dev_get_drvdata(&pdev->dev);
 	struct fg_dev *fg = &chip->fg;
 	int rc, bsoc;
+
+#ifdef CONFIG_MACH_ASUS_SDM660
+	u8 mask, status;
+	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
+	rc = fg_masked_write(fg, BATT_INFO_BATT_MISS_CFG(fg),
+			BM_FROM_BATT_ID_BIT, 0);
+	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
+#else
 	u8 mask;
+#endif
 
 	if (fg->charge_full) {
 		rc = fg_get_sram_prop(fg, FG_SRAM_BATT_SOC, &bsoc);
