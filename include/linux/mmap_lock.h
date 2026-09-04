@@ -67,7 +67,7 @@ static inline void mmap_read_unlock_non_owner(struct mm_struct *mm)
 
 static inline int mmap_lock_is_contended(struct mm_struct *mm)
 {
-	return rwsem_is_contended(&mm->mmap_lock);
+	return rwsem_is_contended(&mm->mmap_sem);
 }
 
 #endif /* _LINUX_MMAP_LOCK_H */
