@@ -897,8 +897,8 @@ bool update_entity_lag(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	if (se->sched_delayed) {
 		/* previous vlag < 0 otherwise se would not be delayed */
 		vlag = max(vlag, se->vlag);
-		if (sched_feat(DELAY_ZERO))
-			vlag = min(vlag, 0LL);
+		if (sched_feat(DELAY_ZERO) && vlag > 0)
+    		vlag = 0;
 	}
 	se->vlag = vlag;
 
@@ -12500,7 +12500,7 @@ static int newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	u64 t0, t1, curr_cost = 0;
 	struct sched_domain *sd;
 	int pulled_task = 0;
-	u64 avg_idle = this_rq->avg_idle;
+        u64 avg_idle = this_rq->avg_idle;
 
 	update_misfit_status(NULL, this_rq);
 

@@ -4164,11 +4164,6 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
-
-	rq_lock(rq, &rf);
-	if (idle_cpu(cpu) && is_reserved(cpu) && !rq->active_balance)
-		clear_reserved(cpu);
-	rq_unlock(rq, &rf);
 #endif
 
 }
