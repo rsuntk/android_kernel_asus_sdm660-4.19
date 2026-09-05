@@ -547,9 +547,9 @@ static inline uint8_t nvt_fw_recovery(uint8_t *point_data)
 	return detected;
 }
 
-static inline irqreturn_t nvt_ts_work_func(int irq, void *data)
+static inline void nvt_ts_worker(struct work_struct *work)
 {
-	struct nvt_ts_data *ts = data;
+	struct nvt_ts_data *ts = container_of(work, struct nvt_ts_data, irq_work);
 	int32_t ret;
 	int32_t i;
 	int32_t finger_cnt = 0;
@@ -562,11 +562,6 @@ static inline irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO / 2 };
 	sched_setscheduler(current, SCHED_RR, &param);
-
-#if WAKEUP_GESTURE
-	if (unlikely(bTouchIsAwake == 0))
-		__pm_wakeup_event(gesture_wakelock, msecs_to_jiffies(5000));
-#endif
 
 	mutex_lock(&ts->lock);
 
@@ -583,8 +578,7 @@ static inline irqreturn_t nvt_ts_work_func(int irq, void *data)
 		input_id = (uint8_t)(point_data[1] >> 3);
 		nvt_ts_wakeup_gesture_report(input_id, point_data);
 		nvt_irq_enable(true);
-		mutex_unlock(&ts->lock);
-		return IRQ_HANDLED;
+		goto XFER_ERROR;
 	}
 #endif
 
@@ -628,6 +622,18 @@ static inline irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 XFER_ERROR:
 	mutex_unlock(&ts->lock);
+}
+
+static inline irqreturn_t nvt_ts_work_func(int irq, void *data)
+{
+	struct nvt_ts_data *ts = data;
+
+#if WAKEUP_GESTURE
+	if (unlikely(bTouchIsAwake == 0))
+		__pm_wakeup_event(gesture_wakelock, msecs_to_jiffies(5000));
+#endif
+
+	queue_work(ts->coord_workqueue, &ts->irq_work);
 
 	return IRQ_HANDLED;
 }
@@ -789,6 +795,13 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	nvt_check_fw_reset_state(RESET_STATE_INIT);
 	nvt_get_fw_info();
 
+	ts->coord_workqueue = alloc_workqueue("nvt_ts_workqueue", WQ_HIGHPRI, 0);
+	if (!ts->coord_workqueue) {
+		ret = -ENOMEM;
+		goto err_create_nvt_ts_workqueue_failed;
+	}
+	INIT_WORK(&ts->irq_work, nvt_ts_worker);
+
 	ts->input_dev = input_allocate_device();
 	if (ts->input_dev == NULL) {
 		ret = -ENOMEM;
@@ -876,6 +889,9 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	return 0;
 
 err_register_fb_notif_failed:
+err_create_nvt_ts_workqueue_failed:
+	if (ts->coord_workqueue)
+		destroy_workqueue(ts->coord_workqueue);
 #if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
@@ -918,6 +934,9 @@ err_power_resource_init_fail:
 
 static inline int32_t nvt_ts_remove(struct i2c_client *client)
 {
+	if (ts->coord_workqueue)
+		destroy_workqueue(ts->coord_workqueue);
+
 	fb_unregister_client(&ts->fb_notif);
 
 #if BOOT_UPDATE_FIRMWARE
@@ -934,6 +953,10 @@ static inline int32_t nvt_ts_remove(struct i2c_client *client)
 
 	nvt_irq_enable(false);
 	free_irq(client->irq, ts);
+
+#if NVT_POWER_SOURCE_CUST_EN
+	nvt_lcm_bias_power_deinit(ts);
+#endif
 
 	mutex_destroy(&ts->xbuf_lock);
 	mutex_destroy(&ts->lock);
@@ -959,6 +982,10 @@ static inline void nvt_ts_shutdown(struct i2c_client *client)
 {
 	nvt_irq_enable(false);
 	fb_unregister_client(&ts->fb_notif);
+
+#if NVT_POWER_SOURCE_CUST_EN
+	nvt_lcm_power_source_ctrl(ts, 0);
+#endif
 
 #if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
@@ -1131,9 +1158,6 @@ module_init(nvt_driver_init);
 
 static inline void __exit nvt_driver_exit(void)
 {
-#if NVT_POWER_SOURCE_CUST_EN
-	nvt_lcm_bias_power_deinit(ts);
-#endif
 	i2c_del_driver(&nvt_i2c_driver);
 }
 module_exit(nvt_driver_exit);
