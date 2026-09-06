@@ -889,9 +889,12 @@ static inline int32_t nvt_ts_probe(struct i2c_client *client,
 	return 0;
 
 err_register_fb_notif_failed:
-err_create_nvt_ts_workqueue_failed:
-	if (ts->coord_workqueue)
-		destroy_workqueue(ts->coord_workqueue);
+#if WAKEUP_GESTURE
+	if (nvt_gesture_mode_proc) {
+		proc_remove(nvt_gesture_mode_proc);
+		nvt_gesture_mode_proc = NULL;
+	}
+#endif
 #if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
@@ -901,23 +904,34 @@ err_create_nvt_ts_workqueue_failed:
 err_create_nvt_fwu_wq_failed:
 #endif
 #if WAKEUP_GESTURE
+	if (gesture_wakelock)
+		wakeup_source_unregister(gesture_wakelock);
 	device_init_wakeup(&ts->input_dev->dev, 0);
 #endif
-	free_irq(client->irq, ts);
+	if (client->irq)
+		free_irq(client->irq, ts);
 err_int_request_failed:
 	input_unregister_device(ts->input_dev);
 	ts->input_dev = NULL;
+	goto err_input_dev_alloc_failed;
 err_input_register_device_failed:
 	if (ts->input_dev) {
 		input_free_device(ts->input_dev);
 		ts->input_dev = NULL;
 	}
 err_input_dev_alloc_failed:
+	if (ts->coord_workqueue) {
+		destroy_workqueue(ts->coord_workqueue);
+		ts->coord_workqueue = NULL;
+	}
+err_create_nvt_ts_workqueue_failed:
 err_chipvertrim_failed:
 	mutex_destroy(&ts->xbuf_lock);
 	mutex_destroy(&ts->lock);
+
 err_check_functionality_failed:
 	nvt_gpio_deconfig(ts);
+
 err_gpio_config_failed:
 #if NVT_POWER_SOURCE_CUST_EN
 	nvt_lcm_power_source_ctrl(ts, 0);
@@ -925,10 +939,9 @@ err_gpio_config_failed:
 err_power_resource_init_fail:
 #endif
 	i2c_set_clientdata(client, NULL);
-	if (ts) {
-		kfree(ts);
-		ts = NULL;
-	}
+	kfree(ts);
+	ts = NULL;
+
 	return ret;
 }
 
