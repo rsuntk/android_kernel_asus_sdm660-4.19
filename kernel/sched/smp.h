@@ -5,9 +5,9 @@
  */
 
 #if SCHED_FEAT_TTWU_QUEUE
-extern void sched_ttwu_pending(void *arg);
+extern void sched_ttwu_pending(void);
 #else
-static inline void sched_ttwu_pending(void *arg) { }
+static inline void sched_ttwu_pending(void) { }
 #endif
 
 extern void send_call_function_single_ipi(int cpu);
