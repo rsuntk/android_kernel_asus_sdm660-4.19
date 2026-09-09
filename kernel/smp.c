@@ -215,9 +215,9 @@ void generic_smp_call_function_single_interrupt(void)
  */
 static void flush_smp_call_function_queue(bool warn_cpu_offline)
 {
-	call_single_data_t *csd, *csd_next;
-	struct llist_node *entry, *prev;
 	struct llist_head *head;
+	struct llist_node *entry;
+	call_single_data_t *csd, *csd_next;
 	static bool warned;
 
 	lockdep_assert_irqs_disabled();
@@ -241,37 +241,18 @@ static void flush_smp_call_function_queue(bool warn_cpu_offline)
 				csd->func);
 	}
 
-	/*
-	 * First; run all SYNC callbacks, people are waiting for us.
-	 */
-	prev = NULL;
 	llist_for_each_entry_safe(csd, csd_next, entry, llist) {
 		smp_call_func_t func = csd->func;
 		void *info = csd->info;
 
 		/* Do we wait until *after* callback? */
 		if (csd->flags & CSD_FLAG_SYNCHRONOUS) {
-			if (prev) {
-				prev->next = &csd_next->llist;
-			} else {
-				entry = &csd_next->llist;
-			}
 			func(info);
 			csd_unlock(csd);
 		} else {
-			prev = &csd->llist;
+			csd_unlock(csd);
+			func(info);
 		}
-	}
-
-	/*
-	 * Second; run all !SYNC callbacks.
-	 */
-	llist_for_each_entry_safe(csd, csd_next, entry, llist) {
-		smp_call_func_t func = csd->func;
-		void *info = csd->info;
-
-		csd_unlock(csd);
-		func(info);
 	}
 
 	/*
