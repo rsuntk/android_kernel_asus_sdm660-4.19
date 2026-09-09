@@ -26,6 +26,7 @@
 #include "sched/features.h"
 #include "sched/smp.h"
 
+
 #define CSD_TYPE(_csd)	((_csd)->flags & CSD_FLAG_TYPE_MASK)
 
 struct call_function_data {
@@ -199,6 +200,7 @@ void generic_smp_call_function_single_interrupt(void)
 	flush_smp_call_function_queue(true);
 }
 
+extern void sched_ttwu_pending(void *);
 extern void irq_work_single(void *);
 
 /**
@@ -923,6 +925,7 @@ int smp_call_on_cpu(unsigned int cpu, int (*func)(void *), void *par, bool phys)
 
 	queue_work_on(cpu, system_wq, &sscs.work);
 	wait_for_completion(&sscs.done);
+	destroy_work_on_stack(&sscs.work);
 
 	return sscs.ret;
 }
