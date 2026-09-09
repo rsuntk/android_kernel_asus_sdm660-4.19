@@ -13,8 +13,6 @@
  * busy      NULL, 2 -> {free, claimed} : callback in progress, can be claimed
  */
 
-/* flags share CSD_FLAG_ space */
-
 #define IRQ_WORK_PENDING	BIT(0)
 #define IRQ_WORK_BUSY		BIT(1)
 
@@ -25,12 +23,9 @@
 
 #define IRQ_WORK_CLAIMED	(IRQ_WORK_PENDING | IRQ_WORK_BUSY)
 
-/*
- * structure shares layout with single_call_data_t.
- */
 struct irq_work {
-	struct llist_node llnode;
 	atomic_t flags;
+	struct llist_node llnode;
 	void (*func)(struct irq_work *);
 };
 
