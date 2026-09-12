@@ -175,19 +175,19 @@ static inline int msm_sdw_set_spkr_mode(struct snd_soc_component *component,
 }
 static inline int msm_sdw_set_spkr_gain_offset(
 				struct snd_soc_component *component,
-				int offset);
+				int offset)
 {
 	return 0;
 }
 static inline void msm_sdw_gpio_cb(
 	int (*sdw_cdc_gpio_fn)(bool enable,
 	struct snd_soc_component *component),
-	struct snd_soc_component *component);
+	struct snd_soc_component *component)
 {
 
 }
 static inline struct regmap *msm_sdw_regmap_init(struct device *dev,
-					  const struct regmap_config *config);
+					  const struct regmap_config *config)
 {
 	return NULL;
 }
