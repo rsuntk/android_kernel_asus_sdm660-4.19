@@ -180,6 +180,7 @@ qdf_export_symbol(qdf_wake_up_process);
 #define QDF_PRINT_TRACE_COUNT 32
 void qdf_print_thread_trace(qdf_thread_t *thread)
 {
+#ifdef CONFIG_STACKTRACE
 	const int spaces = 4;
 	struct task_struct *task = thread;
 	unsigned long entries[QDF_PRINT_TRACE_COUNT] = {0};
@@ -192,6 +193,7 @@ void qdf_print_thread_trace(qdf_thread_t *thread)
 
 	save_stack_trace_tsk(task, &trace);
 	print_stack_trace(&trace, spaces);
+#endif
 }
 #else
 void qdf_print_thread_trace(qdf_thread_t *thread) { }
