@@ -79,6 +79,13 @@
 #include "cpupri.h"
 #include "cpudeadline.h"
 #include "features.h"
+
+#ifdef CONFIG_SCHED_DEBUG
+# define SCHED_WARN_ON(x)	WARN_ONCE(x, #x)
+#else
+# define SCHED_WARN_ON(x)	({ (void)(x), 0; })
+#endif
+
 #include "tune.h"
 
 struct rq;
@@ -1292,7 +1299,7 @@ static inline void assert_clock_updated(struct rq *rq)
 	 * The only reason for not seeing a clock update since the
 	 * last rq_pin_lock() is if we're currently skipping updates.
 	 */
-	WARN_ON_ONCE(rq->clock_update_flags < RQCF_ACT_SKIP);
+	SCHED_WARN_ON(rq->clock_update_flags < RQCF_ACT_SKIP);
 }
 
 static inline u64 rq_clock(struct rq *rq)
@@ -1367,7 +1374,7 @@ static inline void rq_pin_lock(struct rq *rq, struct rq_flags *rf)
 	rf->clock_update_flags = 0;
 #endif
 #ifdef CONFIG_SMP
-	WARN_ON_ONCE(rq->balance_callback);
+	SCHED_WARN_ON(rq->balance_callback);
 #endif
 }
 
@@ -2028,7 +2035,7 @@ static inline void idle_set_state(struct rq *rq,
 
 static inline struct cpuidle_state *idle_get_state(struct rq *rq)
 {
-	WARN_ON_ONCE(!rcu_read_lock_held());
+	SCHED_WARN_ON(!rcu_read_lock_held());
 
 	return rq->idle_state;
 }

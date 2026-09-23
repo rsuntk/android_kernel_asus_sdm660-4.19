@@ -190,7 +190,7 @@ void update_rq_clock(struct rq *rq)
 
 #ifdef CONFIG_SCHED_DEBUG
 	if (sched_feat(WARN_DOUBLE_CLOCK))
-		WARN_ON_ONCE(rq->clock_update_flags & RQCF_UPDATED);
+		SCHED_WARN_ON(rq->clock_update_flags & RQCF_UPDATED);
 	rq->clock_update_flags |= RQCF_UPDATED;
 #endif
 
@@ -1078,7 +1078,7 @@ static inline void uclamp_rq_dec_id(struct rq *rq, struct task_struct *p,
 
 	bucket = &uc_rq->bucket[uc_se->bucket_id];
 
-	WARN_ON_ONCE(!bucket->tasks);
+	SCHED_WARN_ON(!bucket->tasks);
 	if (likely(bucket->tasks))
 		bucket->tasks--;
 
@@ -1098,7 +1098,7 @@ static inline void uclamp_rq_dec_id(struct rq *rq, struct task_struct *p,
 	 * Defensive programming: this should never happen. If it happens,
 	 * e.g. due to future modification, warn and fixup the expected value.
 	 */
-	WARN_ON_ONCE(bucket->value > rq_clamp);
+	SCHED_WARN_ON(bucket->value > rq_clamp);
 	if (bucket->value >= rq_clamp) {
 		bkt_clamp = uclamp_rq_max_value(rq, clamp_id, uc_se->value);
 		uclamp_rq_set(rq, clamp_id, bkt_clamp);
@@ -1685,7 +1685,7 @@ void activate_task(struct rq *rq, struct task_struct *p, int flags)
 
 void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
 {
-	WARN_ON_ONCE(flags & DEQUEUE_SLEEP);
+	SCHED_WARN_ON(flags & DEQUEUE_SLEEP);
 	p->on_rq = TASK_ON_RQ_MIGRATING;
 
 	/*
@@ -2947,7 +2947,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
 		 *  - we're serialized against set_special_state() by virtue of
 		 *    it disabling IRQs (this allows not taking ->pi_lock).
 		 */
-		WARN_ON_ONCE(p->se.sched_delayed);
+		SCHED_WARN_ON(p->se.sched_delayed);
 		if (!(p->state & state))
 			goto out;
 
@@ -3193,7 +3193,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	INIT_LIST_HEAD(&p->se.group_node);
 
 	/* A delayed task cannot be in clone(). */
-	WARN_ON_ONCE(p->se.sched_delayed);
+	SCHED_WARN_ON(p->se.sched_delayed);
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	p->se.cfs_rq			= NULL;
@@ -7986,7 +7986,7 @@ static void cpu_util_update_eff(struct cgroup_subsys_state *css)
 	unsigned int clamps;
 
 	lockdep_assert_held(&uclamp_mutex);
-	WARN_ON_ONCE(!rcu_read_lock_held());
+	SCHED_WARN_ON(!rcu_read_lock_held());
 
 	css_for_each_descendant_pre(css, top_css) {
 		uc_parent = css_tg(css)->parent
