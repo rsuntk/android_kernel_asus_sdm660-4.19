@@ -14,7 +14,6 @@
 #include <linux/uidgid.h>
 #include <uapi/linux/android/binderfs.h>
 #include "binder_alloc.h"
-#include "dbitmap.h"
 
 struct binder_context {
 	struct binder_node *binder_context_mgr_node;
@@ -71,18 +70,12 @@ struct binderfs_info {
 	kgid_t root_gid;
 	struct binderfs_mount_opts mount_opts;
 	int device_count;
-#ifdef CONFIG_ANDROID_BINDER_LOGS
 	struct dentry *proc_log_dir;
-#endif
 };
 
 extern const struct file_operations binder_fops;
 
 extern char *binder_devices_param;
-
-#ifdef CONFIG_UCLAMP_TASK
-unsigned long uclamp_eff_value(struct task_struct *p, enum uclamp_id clamp_id);
-#endif
 
 #ifdef CONFIG_ANDROID_BINDERFS
 extern bool is_binderfs_device(const struct inode *inode);
@@ -114,6 +107,20 @@ static inline int __init init_binderfs(void)
 }
 #endif
 
+struct binder_debugfs_entry {
+	const char *name;
+	umode_t mode;
+	const struct file_operations *fops;
+	void *data;
+};
+
+extern const struct binder_debugfs_entry binder_debugfs_entries[];
+
+#define binder_for_each_debugfs_entry(entry)	\
+	for ((entry) = binder_debugfs_entries;	\
+	     (entry)->name;			\
+	     (entry)++)
+
 enum binder_stat_types {
 	BINDER_STAT_PROC,
 	BINDER_STAT_THREAD,
@@ -125,50 +132,12 @@ enum binder_stat_types {
 	BINDER_STAT_COUNT
 };
 
-#ifdef CONFIG_ANDROID_BINDER_LOGS
-int binder_stats_show(struct seq_file *m, void *unused);
-DEFINE_SHOW_ATTRIBUTE(binder_stats);
-
-int binder_state_show(struct seq_file *m, void *unused);
-DEFINE_SHOW_ATTRIBUTE(binder_state);
-
-int binder_transactions_show(struct seq_file *m, void *unused);
-DEFINE_SHOW_ATTRIBUTE(binder_transactions);
-
-int binder_transaction_log_show(struct seq_file *m, void *unused);
-DEFINE_SHOW_ATTRIBUTE(binder_transaction_log);
-
-struct binder_transaction_log_entry {
-	int debug_id;
-	int debug_id_done;
-	int call_type;
-	int from_proc;
-	int from_thread;
-	int target_handle;
-	int to_proc;
-	int to_thread;
-	int to_node;
-	int data_size;
-	int offsets_size;
-	int return_error_line;
-	uint32_t return_error;
-	uint32_t return_error_param;
-	char context_name[BINDERFS_MAX_NAME + 1];
-};
-
-struct binder_transaction_log {
-	atomic_t cur;
-	bool full;
-	struct binder_transaction_log_entry entry[32];
-};
-
 struct binder_stats {
 	atomic_t br[_IOC_NR(BR_ONEWAY_SPAM_SUSPECT) + 1];
 	atomic_t bc[_IOC_NR(BC_REPLY_SG) + 1];
 	atomic_t obj_created[BINDER_STAT_COUNT];
 	atomic_t obj_deleted[BINDER_STAT_COUNT];
 };
-#endif
 
 /**
  * struct binder_work - work enqueued on a worklist
@@ -189,6 +158,10 @@ struct binder_work {
 		BINDER_WORK_DEAD_BINDER,
 		BINDER_WORK_DEAD_BINDER_AND_CLEAR,
 		BINDER_WORK_CLEAR_DEATH_NOTIFICATION,
+#ifndef __GENKSYMS__
+		BINDER_WORK_FROZEN_BINDER,
+		BINDER_WORK_CLEAR_FREEZE_NOTIFICATION,
+#endif
 	} type;
 };
 
@@ -310,6 +283,14 @@ struct binder_ref_death {
 	binder_uintptr_t cookie;
 };
 
+struct binder_ref_freeze {
+	struct binder_work work;
+	binder_uintptr_t cookie;
+	bool is_frozen:1;
+	bool sent:1;
+	bool resend:1;
+};
+
 /**
  * struct binder_ref_data - binder_ref counts and id
  * @debug_id:        unique ID for the ref
@@ -342,6 +323,8 @@ struct binder_ref_data {
  *               @node indicates the node must be freed
  * @death:       pointer to death notification (ref_death) if requested
  *               (protected by @node->lock)
+ * @freeze:      pointer to freeze notification (ref_freeze) if requested
+ *               (protected by @node->lock)
  *
  * Structure to track references from procA to target node (on procB). This
  * structure is unsafe to access without holding @proc->outer_lock.
@@ -358,13 +341,14 @@ struct binder_ref {
 	struct binder_proc *proc;
 	struct binder_node *node;
 	struct binder_ref_death *death;
+	struct binder_ref_freeze *freeze;
 };
 
 /**
- * struct binder_priority - scheduler policy, priority and uclamp
+ * struct binder_priority - scheduler policy and priority
  * @sched_policy            scheduler policy
  * @prio                    [100..139] for SCHED_NORMAL, [0..99] for FIFO/RT
- * @uclamp                  [0..1024] for UCLAMP_MIN & UCLAMP_MAX
+ *
  * The binder driver supports inheriting the following scheduler policies:
  * SCHED_NORMAL
  * SCHED_BATCH
@@ -374,13 +358,6 @@ struct binder_ref {
 struct binder_priority {
 	unsigned int sched_policy;
 	int prio;
-	unsigned int uclamp[UCLAMP_CNT];
-};
-
-enum binder_prio_state {
-	BINDER_PRIO_SET,	/* desired priority set */
-	BINDER_PRIO_PENDING,	/* initiated a saved priority restore */
-	BINDER_PRIO_ABORT,	/* abort the pending priority restore */
 };
 
 /**
@@ -423,8 +400,6 @@ enum binder_prio_state {
  * @freeze_wait:          waitqueue of processes waiting for all outstanding
  *                        transactions to be processed
  *                        (protected by @inner_lock)
- * @dmap:                 dbitmap to manage available reference descriptors
- *                        (protected by @outer_lock)
  * @todo:                 list of work for this process
  *                        (protected by @inner_lock)
  * @stats:                per-process binder statistics
@@ -473,11 +448,9 @@ struct binder_proc {
 	bool sync_recv;
 	bool async_recv;
 	wait_queue_head_t freeze_wait;
-	struct dbitmap dmap;
+
 	struct list_head todo;
-#ifdef CONFIG_ANDROID_BINDER_LOGS
 	struct binder_stats stats;
-#endif
 	struct list_head delivered_death;
 	int max_threads;
 	int requested_threads;
@@ -499,6 +472,8 @@ struct binder_proc {
  * @cred                  struct cred associated with the `struct file`
  *                        in binder_open()
  *                        (invariant after initialized)
+ * @delivered_freeze:     list of delivered freeze notification
+ *                        (protected by @inner_lock)
  *
  * Extended binder_proc -- needed to add the "cred" field without
  * changing the KMI for binder_proc.
@@ -506,6 +481,7 @@ struct binder_proc {
 struct binder_proc_ext {
 	struct binder_proc proc;
 	const struct cred *cred;
+	struct list_head delivered_freeze;
 };
 
 static inline const struct cred *binder_get_cred(struct binder_proc *proc)
@@ -514,6 +490,12 @@ static inline const struct cred *binder_get_cred(struct binder_proc *proc)
 
 	eproc = container_of(proc, struct binder_proc_ext, proc);
 	return eproc->cred;
+}
+
+static inline
+struct binder_proc_ext *proc_wrapper(struct binder_proc *proc)
+{
+	return container_of(proc, struct binder_proc_ext, proc);
 }
 
 /**
@@ -550,12 +532,6 @@ static inline const struct cred *binder_get_cred(struct binder_proc *proc)
  *                        when outstanding transactions are cleaned up
  *                        (protected by @proc->inner_lock)
  * @task:                 struct task_struct for this thread
- * @prio_lock:            protects thread priority fields
- * @prio_next:            saved priority to be restored next
- *                        (protected by @prio_lock)
- * @prio_state:           state of the priority restore process as
- *                        defined by enum binder_prio_state
- *                        (protected by @prio_lock)
  *
  * Bookkeeping structure for binder threads.
  */
@@ -572,15 +548,10 @@ struct binder_thread {
 	struct binder_error return_error;
 	struct binder_error reply_error;
 	wait_queue_head_t wait;
-#ifdef CONFIG_ANDROID_BINDER_LOGS
 	struct binder_stats stats;
-#endif
 	atomic_t tmp_ref;
 	bool is_dead;
 	struct task_struct *task;
-	spinlock_t prio_lock;
-	struct binder_priority prio_next;
-	enum binder_prio_state prio_state;
 };
 
 /**
@@ -617,7 +588,6 @@ struct binder_transaction {
 	struct binder_priority	priority;
 	struct binder_priority	saved_priority;
 	bool    set_priority_called;
-	bool	is_nested;
 	kuid_t	sender_euid;
 	struct list_head fd_fixups;
 	binder_uintptr_t security_ctx;
@@ -650,8 +620,4 @@ struct binder_object {
 	};
 };
 
-#ifdef CONFIG_ANDROID_BINDER_LOGS
-extern struct binder_transaction_log binder_transaction_log;
-extern struct binder_transaction_log binder_transaction_log_failed;
-#endif
 #endif /* _LINUX_BINDER_INTERNAL_H */
