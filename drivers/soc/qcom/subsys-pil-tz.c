@@ -908,11 +908,19 @@ static void subsys_crash_shutdown(const struct subsys_desc *subsys)
 static irqreturn_t subsys_err_fatal_intr_handler (int irq, void *dev_id)
 {
 	struct pil_tz_data *d = subsys_to_data(dev_id);
+	const char *subsys_desc_name = d->subsys_desc.name;
 
-	pr_err("Fatal error on %s!\n", d->subsys_desc.name);
+#ifdef CONFIG_MACH_ASUS_SDM660
+	if (!strcmp(subsys_desc_name, "adsp")) {
+		pr_warn("Fatal error on %s, but ignore..\n", subsys_desc_name);
+		return IRQ_HANDLED;
+	} else
+#endif
+		pr_err("Fatal error on %s!\n", subsys_desc_name);
+
 	if (subsys_get_crash_status(d->subsys)) {
 		pr_err("%s: Ignoring error fatal, restart in progress\n",
-							d->subsys_desc.name);
+							subsys_desc_name);
 		return IRQ_HANDLED;
 	}
 	subsys_set_crash_status(d->subsys, CRASH_STATUS_ERR_FATAL);
