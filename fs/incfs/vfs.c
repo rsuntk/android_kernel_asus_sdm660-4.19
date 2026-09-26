@@ -11,6 +11,7 @@
 #include <linux/fs_stack.h>
 #include <linux/fsnotify.h>
 #include <linux/fsverity.h>
+#include <linux/mmap_lock.h>
 #include <linux/namei.h>
 #include <linux/parser.h>
 #include <linux/seq_file.h>
@@ -114,7 +115,28 @@ static const struct address_space_operations incfs_address_space_ops = {
 
 static vm_fault_t incfs_fault(struct vm_fault *vmf)
 {
-	vmf->flags &= ~FAULT_FLAG_ALLOW_RETRY;
+	struct file *file = vmf->vma->vm_file;
+	struct data_file *df = get_incfs_data_file(file);
+	struct backing_file_context *bfc = df ? df->df_backing_file_context : NULL;
+
+	/*
+	 * This is something of a kludge
+	 * We want to retry if the read from the underlying file is interrupted,
+	 * but not if the read fails because the stored data is corrupt since the
+	 * latter causes an infinite loop.
+	 *
+	 * However, whether we wish to retry must be set before we call
+	 * filemap_fault, *and* there is no way of getting the read error code out
+	 * of filemap_fault.
+	 *
+	 * So unless there is a robust solution to both the above problems, we can
+	 * solve the actual issues we have encoutered by retrying unless there is
+	 * known corruption in the backing file. This does mean that we won't retry
+	 * with a corrupt backing file if a (good) read is interrupted, but we
+	 * don't really handle corruption well anyway at this time.
+	 */
+	if (bfc && bfc->bc_has_bad_block)
+		vmf->flags &= ~FAULT_FLAG_ALLOW_RETRY;
 	return filemap_fault(vmf);
 }
 
@@ -579,6 +601,13 @@ err:
 	else if (read_result < PAGE_SIZE)
 		zero_user(page, read_result, PAGE_SIZE - read_result);
 
+	if (result == -EBADMSG) {
+		struct backing_file_context *bfc = df ? df->df_backing_file_context : NULL;
+
+		if (bfc)
+			bfc->bc_has_bad_block = 1;
+	}
+
 	if (result == 0)
 		SetPageUptodate(page);
 	else
@@ -931,6 +960,8 @@ static long dispatch_ioctl(struct file *f, unsigned int req, unsigned long arg)
 		return incfs_ioctl_get_flags(f, (void __user *) arg);
 	case FS_IOC_MEASURE_VERITY:
 		return incfs_ioctl_measure_verity(f, (void __user *)arg);
+	case FS_IOC_READ_VERITY_METADATA:
+		return incfs_ioctl_read_verity_metadata(f, (void __user *)arg);
 	default:
 		return -EINVAL;
 	}
@@ -950,6 +981,7 @@ static long incfs_compat_ioctl(struct file *file, unsigned int cmd,
 	case INCFS_IOC_GET_BLOCK_COUNT:
 	case FS_IOC_ENABLE_VERITY:
 	case FS_IOC_MEASURE_VERITY:
+	case FS_IOC_READ_VERITY_METADATA:
 		break;
 	default:
 		return -ENOIOCTLCMD;
@@ -1778,7 +1810,7 @@ struct dentry *incfs_mount_fs(struct file_system_type *type, int flags,
 	sb->s_op = &incfs_super_ops;
 	sb->s_d_op = &incfs_dentry_ops;
 	sb->s_flags |= S_NOATIME;
-	sb->s_magic = (long)INCFS_MAGIC_NUMBER;
+	sb->s_magic = INCFS_MAGIC_NUMBER;
 	sb->s_time_gran = 1;
 	sb->s_blocksize = INCFS_DATA_FILE_BLOCK_SIZE;
 	sb->s_blocksize_bits = blksize_bits(sb->s_blocksize);
@@ -1876,7 +1908,6 @@ struct dentry *incfs_mount_fs(struct file_system_type *type, int flags,
 	sb->s_flags |= SB_ACTIVE;
 
 	pr_debug("incfs: mount\n");
-	free_options(&options);
 	return dget(sb->s_root);
 
 err_put_path:
