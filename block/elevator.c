@@ -101,8 +101,11 @@ static struct elevator_type *elevator_find(const char *name, bool mq)
 	struct elevator_type *e;
 
 	/* Forbid init from changing I/O scheduler by default */
-	if (!strncmp(current->comm, "init", sizeof("init")))
+	if (!strncmp(current->comm, "init", sizeof("init"))) {
+		pr_info_once("%s: forbid init from changing default iosched!\n",
+			__func__);
 		return NULL;
+	}
 
 	list_for_each_entry(e, &elv_list, list) {
 		if (elevator_match(e, name) && (mq == e->uses_mq))
