@@ -21,7 +21,7 @@
 #include "iostat.h"
 #include <trace/events/f2fs.h>
 
-#define DEFAULT_CHECKPOINT_IOPRIO (IOPRIO_PRIO_VALUE(IOPRIO_CLASS_RT, 3))
+#define DEFAULT_CHECKPOINT_IOPRIO (IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE, 3))
 
 static struct kmem_cache *ino_entry_slab;
 struct kmem_cache *f2fs_inode_entry_slab;
@@ -70,7 +70,7 @@ static struct page *__get_meta_page(struct f2fs_sb_info *sbi, pgoff_t index,
 		.old_blkaddr = index,
 		.new_blkaddr = index,
 		.encrypted_page = NULL,
-		.is_por = !is_meta,
+		.is_por = !is_meta ? 1 : 0,
 	};
 	int err;
 
@@ -152,51 +152,52 @@ static bool __is_bitmap_valid(struct f2fs_sb_info *sbi, block_t blkaddr,
 	se = get_seg_entry(sbi, segno);
 
 	exist = f2fs_test_bit(offset, se->cur_valid_map);
-	if (exist && type == DATA_GENERIC_ENHANCE_UPDATE) {
-		f2fs_err(sbi, "Inconsistent error blkaddr:%u, sit bitmap:%d",
-			 blkaddr, exist);
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-		return exist;
-	}
 
-	if (!exist && type == DATA_GENERIC_ENHANCE) {
-		f2fs_err(sbi, "Inconsistent error blkaddr:%u, sit bitmap:%d",
-			 blkaddr, exist);
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-		dump_stack();
-	}
+	/* skip data, if we already have an error in checkpoint. */
+	if (unlikely(f2fs_cp_error(sbi)))
+		return exist;
+
+	if ((exist && type == DATA_GENERIC_ENHANCE_UPDATE) ||
+		(!exist && type == DATA_GENERIC_ENHANCE))
+		goto out_err;
+	if (!exist && type != DATA_GENERIC_ENHANCE_UPDATE)
+		goto out_handle;
+	return exist;
+
+out_err:
+	f2fs_err(sbi, "Inconsistent error blkaddr:%u, sit bitmap:%d",
+		 blkaddr, exist);
+	set_sbi_flag(sbi, SBI_NEED_FSCK);
+	dump_stack();
+out_handle:
+	f2fs_handle_error(sbi, ERROR_INVALID_BLKADDR);
 	return exist;
 }
 
-bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
+static bool __f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
 					block_t blkaddr, int type)
 {
-	if (time_to_inject(sbi, FAULT_BLKADDR)) {
-		f2fs_show_injection_info(sbi, FAULT_BLKADDR);
-		return false;
-	}
-
 	switch (type) {
 	case META_NAT:
 		break;
 	case META_SIT:
 		if (unlikely(blkaddr >= SIT_BLK_CNT(sbi)))
-			return false;
+			goto err;
 		break;
 	case META_SSA:
 		if (unlikely(blkaddr >= MAIN_BLKADDR(sbi) ||
 			blkaddr < SM_I(sbi)->ssa_blkaddr))
-			return false;
+			goto err;
 		break;
 	case META_CP:
 		if (unlikely(blkaddr >= SIT_I(sbi)->sit_base_addr ||
 			blkaddr < __start_cp_addr(sbi)))
-			return false;
+			goto err;
 		break;
 	case META_POR:
 		if (unlikely(blkaddr >= MAX_BLKADDR(sbi) ||
 			blkaddr < MAIN_BLKADDR(sbi)))
-			return false;
+			goto err;
 		break;
 	case DATA_GENERIC:
 	case DATA_GENERIC_ENHANCE:
@@ -204,11 +205,16 @@ bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
 	case DATA_GENERIC_ENHANCE_UPDATE:
 		if (unlikely(blkaddr >= MAX_BLKADDR(sbi) ||
 				blkaddr < MAIN_BLKADDR(sbi))) {
+
+			/* Skip to emit an error message. */
+			if (unlikely(f2fs_cp_error(sbi)))
+				return false;
+
 			f2fs_warn(sbi, "access invalid blkaddr:%u",
 				  blkaddr);
 			set_sbi_flag(sbi, SBI_NEED_FSCK);
 			dump_stack();
-			return false;
+			goto err;
 		} else {
 			return __is_bitmap_valid(sbi, blkaddr, type);
 		}
@@ -216,13 +222,30 @@ bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
 	case META_GENERIC:
 		if (unlikely(blkaddr < SEG0_BLKADDR(sbi) ||
 			blkaddr >= MAIN_BLKADDR(sbi)))
-			return false;
+			goto err;
 		break;
 	default:
 		BUG();
 	}
 
 	return true;
+err:
+	f2fs_handle_error(sbi, ERROR_INVALID_BLKADDR);
+	return false;
+}
+
+bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
+					block_t blkaddr, int type)
+{
+	if (time_to_inject(sbi, FAULT_BLKADDR_VALIDITY))
+		return false;
+	return __f2fs_is_valid_blkaddr(sbi, blkaddr, type);
+}
+
+bool f2fs_is_valid_blkaddr_raw(struct f2fs_sb_info *sbi,
+					block_t blkaddr, int type)
+{
+	return __f2fs_is_valid_blkaddr(sbi, blkaddr, type);
 }
 
 /*
@@ -239,8 +262,8 @@ int f2fs_ra_meta_pages(struct f2fs_sb_info *sbi, block_t start, int nrpages,
 		.op = REQ_OP_READ,
 		.op_flags = sync ? (REQ_META | REQ_PRIO) : REQ_RAHEAD,
 		.encrypted_page = NULL,
-		.in_list = false,
-		.is_por = (type == META_POR),
+		.in_list = 0,
+		.is_por = (type == META_POR) ? 1 : 0,
 	};
 	struct blk_plug plug;
 	int err;
@@ -514,6 +537,7 @@ retry:
 	if (!e) {
 		if (!new) {
 			spin_unlock(&im->ino_lock);
+			radix_tree_preload_end();
 			goto retry;
 		}
 		e = new;
@@ -629,7 +653,6 @@ int f2fs_acquire_orphan_inode(struct f2fs_sb_info *sbi)
 
 	if (time_to_inject(sbi, FAULT_ORPHAN)) {
 		spin_unlock(&im->ino_lock);
-		f2fs_show_injection_info(sbi, FAULT_ORPHAN);
 		return -ENOSPC;
 	}
 
@@ -722,7 +745,7 @@ int f2fs_recover_orphan_inodes(struct f2fs_sb_info *sbi)
 	if (!is_set_ckpt_flags(sbi, CP_ORPHAN_PRESENT_FLAG))
 		return 0;
 
-	if (bdev_read_only(sbi->sb->s_bdev)) {
+	if (f2fs_hw_is_readonly(sbi)) {
 		f2fs_info(sbi, "write access unavailable, skipping orphan cleanup");
 		return 0;
 	}
@@ -759,7 +782,8 @@ int f2fs_recover_orphan_inodes(struct f2fs_sb_info *sbi)
 		orphan_blk = (struct f2fs_orphan_block *)page_address(page);
 		entry_count = le32_to_cpu(orphan_blk->entry_count);
 		if (entry_count > F2FS_ORPHANS_PER_BLOCK) {
-			f2fs_err(sbi, "invalid orphan inode entry count %u",
+			f2fs_err(sbi,
+				 "invalid orphan inode entry count %u",
 				 entry_count);
 			set_sbi_flag(sbi, SBI_NEED_FSCK);
 			err = -EFSCORRUPTED;
@@ -813,7 +837,7 @@ static void write_orphan_inodes(struct f2fs_sb_info *sbi, block_t start_blk)
 	 */
 	head = &im->ino_list;
 
-	/* loop for each orphan inode entry and write them in Jornal block */
+	/* loop for each orphan inode entry and write them in journal block */
 	list_for_each_entry(orphan, head, list) {
 		if (!page) {
 			page = f2fs_grab_meta_page(sbi, start_blk++);
@@ -1000,7 +1024,7 @@ int f2fs_get_valid_checkpoint(struct f2fs_sb_info *sbi)
 
 	cp_blk_no = le32_to_cpu(fsb->cp_blkaddr);
 	if (cur_page == cp2)
-		cp_blk_no += 1 << le32_to_cpu(fsb->log_blocks_per_seg);
+		cp_blk_no += BIT(le32_to_cpu(fsb->log_blocks_per_seg));
 
 	for (i = 1; i < cp_blks; i++) {
 		void *sit_bitmap_ptr;
@@ -1143,7 +1167,7 @@ retry:
 	} else {
 		/*
 		 * We should submit bio, since it exists several
-		 * wribacking dentry pages in the freeing inode.
+		 * writebacking dentry pages in the freeing inode.
 		 */
 		f2fs_submit_merged_write(sbi, DATA);
 		cond_resched();
@@ -1151,7 +1175,7 @@ retry:
 	goto retry;
 }
 
-int f2fs_sync_inode_meta(struct f2fs_sb_info *sbi)
+static int f2fs_sync_inode_meta(struct f2fs_sb_info *sbi)
 {
 	struct list_head *head = &sbi->inode_list[DIRTY_META];
 	struct inode *inode;
@@ -1487,29 +1511,23 @@ static int do_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 
 	/* Flush all the NAT/SIT pages */
 	f2fs_sync_meta_pages(sbi, META, LONG_MAX, FS_CP_META_IO);
-	if (get_pages(sbi, F2FS_DIRTY_META) && !f2fs_cp_error(sbi)) {
-		WARN_ON(1);
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-	}
 
 	/* start to update checkpoint, cp ver is already updated previously */
 	ckpt->elapsed_time = cpu_to_le64(get_mtime(sbi, true));
 	ckpt->free_segment_count = cpu_to_le32(free_segments(sbi));
 	for (i = 0; i < NR_CURSEG_NODE_TYPE; i++) {
-		ckpt->cur_node_segno[i] =
-			cpu_to_le32(curseg_segno(sbi, i + CURSEG_HOT_NODE));
-		ckpt->cur_node_blkoff[i] =
-			cpu_to_le16(curseg_blkoff(sbi, i + CURSEG_HOT_NODE));
-		ckpt->alloc_type[i + CURSEG_HOT_NODE] =
-				curseg_alloc_type(sbi, i + CURSEG_HOT_NODE);
+		struct curseg_info *curseg = CURSEG_I(sbi, i + CURSEG_HOT_NODE);
+
+		ckpt->cur_node_segno[i] = cpu_to_le32(curseg->segno);
+		ckpt->cur_node_blkoff[i] = cpu_to_le16(curseg->next_blkoff);
+		ckpt->alloc_type[i + CURSEG_HOT_NODE] = curseg->alloc_type;
 	}
 	for (i = 0; i < NR_CURSEG_DATA_TYPE; i++) {
-		ckpt->cur_data_segno[i] =
-			cpu_to_le32(curseg_segno(sbi, i + CURSEG_HOT_DATA));
-		ckpt->cur_data_blkoff[i] =
-			cpu_to_le16(curseg_blkoff(sbi, i + CURSEG_HOT_DATA));
-		ckpt->alloc_type[i + CURSEG_HOT_DATA] =
-				curseg_alloc_type(sbi, i + CURSEG_HOT_DATA);
+		struct curseg_info *curseg = CURSEG_I(sbi, i + CURSEG_HOT_DATA);
+
+		ckpt->cur_data_segno[i] = cpu_to_le32(curseg->segno);
+		ckpt->cur_data_blkoff[i] = cpu_to_le16(curseg->next_blkoff);
+		ckpt->alloc_type[i + CURSEG_HOT_DATA] = curseg->alloc_type;
 	}
 
 	/* 2 cp + n data seg summary + orphan inode blocks */
@@ -1596,10 +1614,6 @@ static int do_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 
 	/* Here, we have one bio having CP pack except cp pack 2 page */
 	f2fs_sync_meta_pages(sbi, META, LONG_MAX, FS_CP_META_IO);
-	if (get_pages(sbi, F2FS_DIRTY_META) && !f2fs_cp_error(sbi)) {
-		WARN_ON(1);
-		set_sbi_flag(sbi, SBI_NEED_FSCK);
-	}
 	/* Wait for all dirty meta pages to be submitted for IO */
 	f2fs_wait_on_all_pages(sbi, F2FS_DIRTY_META);
 
@@ -1621,8 +1635,9 @@ static int do_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	 */
 	if (f2fs_sb_has_encrypt(sbi) || f2fs_sb_has_verity(sbi) ||
 		f2fs_sb_has_compression(sbi))
-		invalidate_mapping_pages(META_MAPPING(sbi),
-				MAIN_BLKADDR(sbi), MAX_BLKADDR(sbi) - 1);
+		f2fs_bug_on(sbi,
+			invalidate_inode_pages2_range(META_MAPPING(sbi),
+				MAIN_BLKADDR(sbi), MAX_BLKADDR(sbi) - 1));
 
 	f2fs_release_ino_entry(sbi, false);
 

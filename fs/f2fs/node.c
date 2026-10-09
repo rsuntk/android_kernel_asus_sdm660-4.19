@@ -365,7 +365,6 @@ void f2fs_del_fsync_node_entry(struct f2fs_sb_info *sbi, struct page *page)
 		}
 	}
 	spin_unlock_irqrestore(&sbi->fsync_node_lock, flags);
-	f2fs_bug_on(sbi, 1);
 }
 
 void f2fs_reset_fsync_node_info(struct f2fs_sb_info *sbi)
@@ -799,9 +798,11 @@ int f2fs_get_dnode_of_data(struct dnode_of_data *dn, pgoff_t index, int mode)
 
 		if (nids[i] && nids[i] == dn->inode->i_ino) {
 			err = -EFSCORRUPTED;
-			f2fs_err(sbi, "inode mapping table is corrupted, run fsck to fix it, "
-				"ino:%lu, nid:%u, level:%d, offset:%d",
+			pr_warn("F2FS: inode mapping table is corrupted, run fsck to fix it, "
+				"ino:%lu, nid:%u, level:%d, offset:%d\n",
 				dn->inode->i_ino, nids[i], level, offset[level]);
+				set_sbi_flag(sbi, SBI_NEED_FSCK);
+
 			set_sbi_flag(sbi, SBI_NEED_FSCK);
 			goto release_pages;
 		}
@@ -859,21 +860,29 @@ int f2fs_get_dnode_of_data(struct dnode_of_data *dn, pgoff_t index, int mode)
 
 	if (is_inode_flag_set(dn->inode, FI_COMPRESSED_FILE) &&
 					f2fs_sb_has_readonly(sbi)) {
-		unsigned int c_len = f2fs_cluster_blocks_are_contiguous(dn);
+		unsigned int cluster_size = F2FS_I(dn->inode)->i_cluster_size;
+		unsigned int ofs_in_node = dn->ofs_in_node;
+		pgoff_t fofs = index;
+		unsigned int c_len;
 		block_t blkaddr;
 
+		/* should align fofs and ofs_in_node to cluster_size */
+		if (fofs % cluster_size) {
+			fofs = round_down(fofs, cluster_size);
+			ofs_in_node = round_down(ofs_in_node, cluster_size);
+		}
+
+		c_len = f2fs_cluster_blocks_are_contiguous(dn, ofs_in_node);
 		if (!c_len)
 			goto out;
 
-		blkaddr = f2fs_data_blkaddr(dn);
+		blkaddr = data_blkaddr(dn->inode, dn->node_page, ofs_in_node);
 		if (blkaddr == COMPRESS_ADDR)
 			blkaddr = data_blkaddr(dn->inode, dn->node_page,
-						dn->ofs_in_node + 1);
+						ofs_in_node + 1);
 
 		f2fs_update_read_extent_tree_range_compressed(dn->inode,
-					index, blkaddr,
-					F2FS_I(dn->inode)->i_cluster_size,
-					c_len);
+					fofs, blkaddr, cluster_size, c_len);
 	}
 out:
 	return 0;
@@ -1466,7 +1475,8 @@ page_hit:
 			  ofs_of_node(page), cpver_of_node(page),
 			  next_blkaddr_of_node(page));
 	set_sbi_flag(sbi, SBI_NEED_FSCK);
-	err = -EINVAL;
+	f2fs_handle_error(sbi, ERROR_INCONSISTENT_FOOTER);
+	err = -EFSCORRUPTED;
 out_err:
 	ClearPageUptodate(page);
 out_put_err:
@@ -1597,7 +1607,7 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 		.op_flags = wbc_to_write_flags(wbc),
 		.page = page,
 		.encrypted_page = NULL,
-		.submitted = false,
+		.submitted = 0,
 		.io_type = io_type,
 		.io_wbc = wbc,
 	};
@@ -1661,7 +1671,6 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 	}
 
 	set_page_writeback(page);
-	ClearPageError(page);
 
 	fio.old_blkaddr = ni.blk_addr;
 	f2fs_do_write_node_page(nid, &fio);
@@ -1912,7 +1921,7 @@ void f2fs_flush_inline_data(struct f2fs_sb_info *sbi)
 		for (i = 0; i < nr_pages; i++) {
 			struct page *page = pvec.pages[i];
 
-			if (!IS_DNODE(page))
+			if (!IS_INODE(page))
 				continue;
 
 			lock_page(page);
@@ -2071,7 +2080,6 @@ int f2fs_wait_on_node_pages_writeback(struct f2fs_sb_info *sbi,
 	struct list_head *head = &sbi->fsync_node_list;
 	unsigned long flags;
 	unsigned int cur_seq_id = 0;
-	int ret2, ret = 0;
 
 	while (seq_id && cur_seq_id < seq_id) {
 		spin_lock_irqsave(&sbi->fsync_node_lock, flags);
@@ -2090,20 +2098,11 @@ int f2fs_wait_on_node_pages_writeback(struct f2fs_sb_info *sbi,
 		spin_unlock_irqrestore(&sbi->fsync_node_lock, flags);
 
 		f2fs_wait_on_page_writeback(page, NODE, true, false);
-		if (TestClearPageError(page))
-			ret = -EIO;
 
 		put_page(page);
-
-		if (ret)
-			break;
 	}
 
-	ret2 = filemap_check_errors(NODE_MAPPING(sbi));
-	if (!ret)
-		ret = ret2;
-
-	return ret;
+	return filemap_check_errors(NODE_MAPPING(sbi));
 }
 
 static int f2fs_write_node_pages(struct address_space *mapping,
@@ -2556,10 +2555,8 @@ bool f2fs_alloc_nid(struct f2fs_sb_info *sbi, nid_t *nid)
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
 	struct free_nid *i = NULL;
 retry:
-	if (time_to_inject(sbi, FAULT_ALLOC_NID)) {
-		f2fs_show_injection_info(sbi, FAULT_ALLOC_NID);
+	if (time_to_inject(sbi, FAULT_ALLOC_NID))
 		return false;
-	}
 
 	spin_lock(&nm_i->nid_list_lock);
 
@@ -2749,9 +2746,11 @@ recover_xnid:
 	f2fs_update_inode_page(inode);
 
 	/* 3: update and set xattr node page dirty */
-	memcpy(F2FS_NODE(xpage), F2FS_NODE(page), VALID_XATTR_BLOCK_SIZE);
-
-	set_page_dirty(xpage);
+	if (page) {
+		memcpy(F2FS_NODE(xpage), F2FS_NODE(page),
+				VALID_XATTR_BLOCK_SIZE);
+		set_page_dirty(xpage);
+	}
 	f2fs_put_page(xpage, 1);
 
 	return 0;
@@ -3078,7 +3077,7 @@ int f2fs_flush_nat_entries(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
 	struct curseg_info *curseg = CURSEG_I(sbi, CURSEG_HOT_DATA);
 	struct f2fs_journal *journal = curseg->journal;
-	struct nat_entry_set *setvec[SETVEC_SIZE];
+	struct nat_entry_set *setvec[NAT_VEC_SIZE];
 	struct nat_entry_set *set, *tmp;
 	unsigned int found;
 	nid_t set_idx = 0;
@@ -3111,7 +3110,7 @@ int f2fs_flush_nat_entries(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 		remove_nats_in_journal(sbi);
 
 	while ((found = __gang_lookup_nat_set(nm_i,
-					set_idx, SETVEC_SIZE, setvec))) {
+					set_idx, NAT_VEC_SIZE, setvec))) {
 		unsigned idx;
 
 		set_idx = setvec[found - 1]->set + 1;
@@ -3332,8 +3331,9 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
 {
 	struct f2fs_nm_info *nm_i = NM_I(sbi);
 	struct free_nid *i, *next_i;
-	struct nat_entry *natvec[NATVEC_SIZE];
-	struct nat_entry_set *setvec[SETVEC_SIZE];
+	void *vec[NAT_VEC_SIZE];
+	struct nat_entry **natvec = (struct nat_entry **)vec;
+	struct nat_entry_set **setvec = (struct nat_entry_set **)vec;
 	nid_t nid = 0;
 	unsigned int found;
 
@@ -3356,7 +3356,7 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
 	/* destroy nat cache */
 	f2fs_down_write(&nm_i->nat_tree_lock);
 	while ((found = __gang_lookup_nat_cache(nm_i,
-					nid, NATVEC_SIZE, natvec))) {
+					nid, NAT_VEC_SIZE, natvec))) {
 		unsigned idx;
 
 		nid = nat_get_nid(natvec[found - 1]) + 1;
@@ -3372,8 +3372,9 @@ void f2fs_destroy_node_manager(struct f2fs_sb_info *sbi)
 
 	/* destroy nat set cache */
 	nid = 0;
+	memset(vec, 0, sizeof(void *) * NAT_VEC_SIZE);
 	while ((found = __gang_lookup_nat_set(nm_i,
-					nid, SETVEC_SIZE, setvec))) {
+					nid, NAT_VEC_SIZE, setvec))) {
 		unsigned idx;
 
 		nid = setvec[found - 1]->set + 1;

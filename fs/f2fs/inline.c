@@ -177,7 +177,6 @@ int f2fs_convert_inline_page(struct dnode_of_data *dn, struct page *page)
 
 	/* write data page to try to make data consistent */
 	set_page_writeback(page);
-	ClearPageError(page);
 	fio.old_blkaddr = dn->data_blkaddr;
 	set_inode_flag(dn->inode, FI_HOT_DATA);
 	f2fs_outplace_write_data(dn, &fio);
@@ -493,12 +492,6 @@ static int f2fs_add_inline_entries(struct inode *dir, void *inline_dentry)
 			bit_pos++;
 			continue;
 		}
-		if (unlikely(le16_to_cpu(de->name_len) > F2FS_NAME_LEN ||
-			     bit_pos + GET_DENTRY_SLOTS(le16_to_cpu(de->name_len)) >
-			     d.max)) {
-			err = -EFSCORRUPTED;
-			goto punch_dentry_pages;
-		}
 
 		/*
 		 * We only need the disk_name and hash to move the dentry.
@@ -519,7 +512,6 @@ static int f2fs_add_inline_entries(struct inode *dir, void *inline_dentry)
 		bit_pos += GET_DENTRY_SLOTS(le16_to_cpu(de->name_len));
 	}
 	return 0;
-
 punch_dentry_pages:
 	truncate_inode_pages(&dir->i_data, 0);
 	f2fs_truncate_blocks(dir, 0, false);
@@ -655,7 +647,8 @@ int f2fs_add_inline_entry(struct inode *dir, const struct f2fs_filename *fname,
 	}
 
 	if (inode) {
-		f2fs_down_write(&F2FS_I(inode)->i_sem);
+		f2fs_down_write_nested(&F2FS_I(inode)->i_sem,
+						SINGLE_DEPTH_NESTING);
 		page = f2fs_init_inode_metadata(inode, dir, fname, ipage);
 		if (IS_ERR(page)) {
 			err = PTR_ERR(page);

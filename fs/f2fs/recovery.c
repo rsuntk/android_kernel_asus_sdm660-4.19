@@ -359,21 +359,63 @@ static unsigned int adjust_por_ra_blocks(struct f2fs_sb_info *sbi,
 	return ra_blocks;
 }
 
+/* Detect looped node chain with Floyd's cycle detection algorithm. */
+static int sanity_check_node_chain(struct f2fs_sb_info *sbi, block_t blkaddr,
+		block_t *blkaddr_fast, bool *is_detecting)
+{
+	unsigned int ra_blocks = RECOVERY_MAX_RA_BLOCKS;
+	struct page *page = NULL;
+	int i;
+
+	if (!*is_detecting)
+		return 0;
+
+	for (i = 0; i < 2; i++) {
+		if (!f2fs_is_valid_blkaddr(sbi, *blkaddr_fast, META_POR)) {
+			*is_detecting = false;
+			return 0;
+		}
+
+		page = f2fs_get_tmp_page(sbi, *blkaddr_fast);
+		if (IS_ERR(page))
+			return PTR_ERR(page);
+
+		if (!is_recoverable_dnode(page)) {
+			f2fs_put_page(page, 1);
+			*is_detecting = false;
+			return 0;
+		}
+
+		ra_blocks = adjust_por_ra_blocks(sbi, ra_blocks, *blkaddr_fast,
+						next_blkaddr_of_node(page));
+
+		*blkaddr_fast = next_blkaddr_of_node(page);
+		f2fs_put_page(page, 1);
+
+		f2fs_ra_meta_pages_cond(sbi, *blkaddr_fast, ra_blocks);
+	}
+
+	if (*blkaddr_fast == blkaddr) {
+		f2fs_notice(sbi, "%s: Detect looped node chain on blkaddr:%u."
+				" Run fsck to fix it.", __func__, blkaddr);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
-				bool check_only, bool *new_inode)
+				bool check_only)
 {
 	struct curseg_info *curseg;
 	struct page *page = NULL;
-	block_t blkaddr;
-	unsigned int loop_cnt = 0;
-	unsigned int ra_blocks = RECOVERY_MAX_RA_BLOCKS;
-	unsigned int free_blocks = MAIN_SEGS(sbi) * sbi->blocks_per_seg -
-						valid_user_blocks(sbi);
+	block_t blkaddr, blkaddr_fast;
+	bool is_detecting = true;
 	int err = 0;
 
 	/* get node pages in the current segment */
 	curseg = CURSEG_I(sbi, CURSEG_WARM_NODE);
 	blkaddr = NEXT_FREE_BLKADDR(sbi, curseg);
+	blkaddr_fast = blkaddr;
 
 	while (1) {
 		struct fsync_inode_entry *entry;
@@ -417,12 +459,8 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 								quota_inode);
 			if (IS_ERR(entry)) {
 				err = PTR_ERR(entry);
-				if (err == -ENOENT) {
-					if (check_only)
-						*new_inode = true;
-					err = 0;
+				if (err == -ENOENT)
 					goto next;
-				}
 				f2fs_put_page(page, 1);
 				break;
 			}
@@ -432,25 +470,14 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 		if (IS_INODE(page) && is_dent_dnode(page))
 			entry->last_dentry = blkaddr;
 next:
-		/* sanity check in order to detect looped node chain */
-		if (++loop_cnt >= free_blocks ||
-			blkaddr == next_blkaddr_of_node(page)) {
-			f2fs_notice(sbi, "%s: detect looped node chain, blkaddr:%u, next:%u",
-				    __func__, blkaddr,
-				    next_blkaddr_of_node(page));
-			f2fs_put_page(page, 1);
-			err = -EINVAL;
-			break;
-		}
-
-		ra_blocks = adjust_por_ra_blocks(sbi, ra_blocks, blkaddr,
-						next_blkaddr_of_node(page));
-
 		/* check next segment */
 		blkaddr = next_blkaddr_of_node(page);
 		f2fs_put_page(page, 1);
 
-		f2fs_ra_meta_pages_cond(sbi, blkaddr, ra_blocks);
+		err = sanity_check_node_chain(sbi, blkaddr, &blkaddr_fast,
+				&is_detecting);
+		if (err)
+			break;
 	}
 	return err;
 }
@@ -583,6 +610,19 @@ truncate_out:
 	return 0;
 }
 
+static int f2fs_reserve_new_block_retry(struct dnode_of_data *dn)
+{
+	int i, err = 0;
+
+	for (i = DEFAULT_FAILURE_RETRY_COUNT; i > 0; i--) {
+		err = f2fs_reserve_new_block(dn);
+		if (!err)
+			break;
+	}
+
+	return err;
+}
+
 static int do_recover_data(struct f2fs_sb_info *sbi, struct inode *inode,
 					struct page *page)
 {
@@ -652,14 +692,12 @@ retry_dn:
 		if (__is_valid_data_blkaddr(src) &&
 			!f2fs_is_valid_blkaddr(sbi, src, META_POR)) {
 			err = -EFSCORRUPTED;
-			f2fs_handle_error(sbi, ERROR_INVALID_BLKADDR);
 			goto err;
 		}
 
 		if (__is_valid_data_blkaddr(dest) &&
 			!f2fs_is_valid_blkaddr(sbi, dest, META_POR)) {
 			err = -EFSCORRUPTED;
-			f2fs_handle_error(sbi, ERROR_INVALID_BLKADDR);
 			goto err;
 		}
 
@@ -684,14 +722,7 @@ retry_dn:
 		 */
 		if (dest == NEW_ADDR) {
 			f2fs_truncate_data_blocks_range(&dn, 1);
-			do {
-				err = f2fs_reserve_new_block(&dn);
-				if (err == -ENOSPC) {
-					f2fs_bug_on(sbi, 1);
-					break;
-				}
-			} while (err &&
-				IS_ENABLED(CONFIG_F2FS_FAULT_INJECTION));
+			err = f2fs_reserve_new_block_retry(&dn);
 			if (err)
 				goto err;
 			continue;
@@ -699,16 +730,8 @@ retry_dn:
 
 		/* dest is valid block, try to recover from src to dest */
 		if (f2fs_is_valid_blkaddr(sbi, dest, META_POR)) {
-
 			if (src == NULL_ADDR) {
-				do {
-					err = f2fs_reserve_new_block(&dn);
-					if (err == -ENOSPC) {
-						f2fs_bug_on(sbi, 1);
-						break;
-					}
-				} while (err &&
-					IS_ENABLED(CONFIG_F2FS_FAULT_INJECTION));
+				err = f2fs_reserve_new_block_retry(&dn);
 				if (err)
 					goto err;
 			}
@@ -729,8 +752,6 @@ retry_prev:
 				f2fs_err(sbi, "Inconsistent dest blkaddr:%u, ino:%lu, ofs:%u",
 					dest, inode->i_ino, dn.ofs_in_node);
 				err = -EFSCORRUPTED;
-				f2fs_handle_error(sbi,
-						ERROR_INVALID_BLKADDR);
 				goto err;
 			}
 
@@ -837,7 +858,6 @@ int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	int ret = 0;
 	unsigned long s_flags = sbi->sb->s_flags;
 	bool need_writecp = false;
-	bool new_inode = false;
 #ifdef CONFIG_QUOTA
 	int quota_enabled;
 #endif
@@ -860,8 +880,8 @@ int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	f2fs_down_write(&sbi->cp_global_sem);
 
 	/* step #1: find fsynced inode numbers */
-	err = find_fsync_dnodes(sbi, &inode_list, check_only, &new_inode);
-	if (err < 0 || (list_empty(&inode_list) && (!check_only || !new_inode)))
+	err = find_fsync_dnodes(sbi, &inode_list, check_only);
+	if (err || list_empty(&inode_list))
 		goto skip;
 
 	if (check_only) {
