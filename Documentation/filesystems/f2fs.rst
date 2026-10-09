@@ -158,7 +158,7 @@ nobarrier		 This option can be used if underlying storage guarantees
 			 If this option is set, no cache_flush commands are issued
 			 but f2fs still guarantees the write ordering of all the
 			 data writes.
-barrier		 If this option is set, cache_flush commands are allowed to be
+barrier			 If this option is set, cache_flush commands are allowed to be
 			 issued.
 fastboot		 This option is used when a system wants to reduce mount
 			 time as much as possible, even though normal performance
@@ -184,29 +184,30 @@ fault_type=%d		 Support configuring fault injection type, should be
 			 enabled with fault_injection option, fault type value
 			 is shown below, it supports single or combined type.
 
-			 ===================	  ===========
-			 Type_Name		  Type_Value
-			 ===================	  ===========
-			 FAULT_KMALLOC		  0x000000001
-			 FAULT_KVMALLOC		  0x000000002
-			 FAULT_PAGE_ALLOC	  0x000000004
-			 FAULT_PAGE_GET		  0x000000008
-			 FAULT_ALLOC_BIO	  0x000000010 (obsolete)
-			 FAULT_ALLOC_NID	  0x000000020
-			 FAULT_ORPHAN		  0x000000040
-			 FAULT_BLOCK		  0x000000080
-			 FAULT_DIR_DEPTH	  0x000000100
-			 FAULT_EVICT_INODE	  0x000000200
-			 FAULT_TRUNCATE		  0x000000400
-			 FAULT_READ_IO		  0x000000800
-			 FAULT_CHECKPOINT	  0x000001000
-			 FAULT_DISCARD		  0x000002000
-			 FAULT_WRITE_IO		  0x000004000
-			 FAULT_SLAB_ALLOC	  0x000008000
-			 FAULT_DQUOT_INIT	  0x000010000
-			 FAULT_LOCK_OP		  0x000020000
-			 FAULT_BLKADDR		  0x000040000
-			 ===================	  ===========
+			 ===========================      ===========
+			 Type_Name                        Type_Value
+			 ===========================      ===========
+			 FAULT_KMALLOC                    0x000000001
+			 FAULT_KVMALLOC                   0x000000002
+			 FAULT_PAGE_ALLOC                 0x000000004
+			 FAULT_PAGE_GET                   0x000000008
+			 FAULT_ALLOC_BIO                  0x000000010 (obsolete)
+			 FAULT_ALLOC_NID                  0x000000020
+			 FAULT_ORPHAN                     0x000000040
+			 FAULT_BLOCK                      0x000000080
+			 FAULT_DIR_DEPTH                  0x000000100
+			 FAULT_EVICT_INODE                0x000000200
+			 FAULT_TRUNCATE                   0x000000400
+			 FAULT_READ_IO                    0x000000800
+			 FAULT_CHECKPOINT                 0x000001000
+			 FAULT_DISCARD                    0x000002000
+			 FAULT_WRITE_IO                   0x000004000
+			 FAULT_SLAB_ALLOC                 0x000008000
+			 FAULT_DQUOT_INIT                 0x000010000
+			 FAULT_LOCK_OP                    0x000020000
+			 FAULT_BLKADDR_VALIDITY           0x000040000
+			 FAULT_BLKADDR_CONSISTENCE        0x000080000
+			 ===========================      ===========
 mode=%s			 Control block allocation mode which supports "adaptive"
 			 and "lfs". In "lfs" mode, there should be no random
 			 writes towards main area.
@@ -264,7 +265,7 @@ checkpoint=%s[:%u[%]]	 Set to "disable" to turn off checkpointing. Set to "enabl
 			 disabled, any unmounting or unexpected shutdowns will cause
 			 the filesystem contents to appear as they did when the
 			 filesystem was mounted with that option.
-			 While mounting with checkpoint=disabled, the filesystem must
+			 While mounting with checkpoint=disable, the filesystem must
 			 run garbage collection to ensure that all available space can
 			 be used. If this takes too much time, the mount may return
 			 EAGAIN. You may optionally add a value to indicate how much
