@@ -119,7 +119,7 @@ bool page_counter_try_charge(struct page_counter *counter,
 			 * inaccuracy in the failcnt which is only used
 			 * to report stats.
 			 */
-			data_race(c->failcnt++);
+			c->failcnt++;
 			*fail = c;
 			goto failed;
 		}
