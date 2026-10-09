@@ -1068,13 +1068,6 @@ static int cpufreq_init_policy(struct cpufreq_policy *policy)
 		else
 			cpufreq_parse_governor(gov->name, &new_policy);
 	}
-
-	/*
-	 * Override scaling_max_freq to the hardware OPP maximum at policy init.
-	 */
-	new_policy.user_policy.max = new_policy.cpuinfo.max_freq;
-	new_policy.max = new_policy.cpuinfo.max_freq;
-
 	/* set default policy */
 	return cpufreq_set_policy(policy, &new_policy);
 }
