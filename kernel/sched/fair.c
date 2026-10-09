@@ -10012,8 +10012,6 @@ static void update_cpu_capacity(struct sched_domain *sd, int cpu)
 	unsigned long flags;
 	u64 limit;
 
-	rq->cpu_capacity_orig = capacity;
-
 	capacity *= arch_scale_max_freq_capacity(sd, cpu);
 	capacity >>= SCHED_CAPACITY_SHIFT;
 
@@ -12023,7 +12021,7 @@ static inline int find_energy_aware_new_ilb(void)
 	int cpu = raw_smp_processor_id();
 	cpumask_t idle_cpus, tmp_cpus;
 	struct sched_group *sg;
-	unsigned long ref_cap = capacity_orig_of(cpu);
+	unsigned long ref_cap = arch_scale_cpu_capacity(cpu);
 	unsigned long best_cap = 0, best_cap_cpu = -1;
 
 	rcu_read_lock();
@@ -12045,7 +12043,7 @@ static inline int find_energy_aware_new_ilb(void)
 		if (i >= nr_cpu_ids)
 			continue;
 
-		cap = capacity_orig_of(i);
+		cap = arch_scale_cpu_capacity(i);
 
 		/* The first preference is for the same capacity CPU */
 		if (cap == ref_cap) {
