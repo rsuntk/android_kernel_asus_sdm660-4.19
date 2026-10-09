@@ -146,7 +146,7 @@ static inline void update_busy_hyst_end_time(int cpu, bool dequeue,
 		nr_run_trigger = true;
 
 	if (dequeue && (cpu_util(cpu) * BUSY_LOAD_FACTOR) >
-			capacity_orig_of(cpu))
+			arch_scale_cpu_capacity(cpu))
 		load_trigger = true;
 
 	if (nr_run_trigger || load_trigger)
@@ -204,7 +204,7 @@ unsigned int sched_get_cpu_util(int cpu)
 	raw_spin_lock_irqsave(&rq->lock, flags);
 
 	util = rq->cfs.avg.util_avg;
-	capacity = capacity_orig_of(cpu);
+	capacity = arch_scale_cpu_capacity(cpu);
 
 	util = rq->prev_runnable_sum + rq->grp_time.prev_runnable_sum;
 	util = div64_u64(util, sched_ravg_window >> SCHED_CAPACITY_SHIFT);
