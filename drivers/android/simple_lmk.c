@@ -11,23 +11,33 @@
 #include <linux/mm.h>
 #include <linux/moduleparam.h>
 #include <linux/oom.h>
+#include <linux/proc_fs.h>
 #include <linux/sched/mm.h>
+#include <linux/seq_file.h>
 #include <linux/sort.h>
+#include <linux/uaccess.h>
 #include <linux/vmpressure.h>
 #include <uapi/linux/sched/types.h>
 
-/* The minimum number of pages to free per reclaim */
+/*
+ * Tunables, exposed under /proc/simple_lmk/
+ *
+ * minfree    - minimum amount of memory (MiB) to free per reclaim
+ * timeout    - time (ms) to wait for victims to die after each reclaim
+ * vmpressure - vmpressure level (1-100) at which reclaim is triggered
+ */
 static unsigned short slmk_minfree __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_MINFREE;
-module_param(slmk_minfree, short, 0644);
-#define MIN_FREE_PAGES (slmk_minfree * SZ_1M / PAGE_SIZE)
+#define MIN_FREE_PAGES ((unsigned long)slmk_minfree * SZ_1M / PAGE_SIZE)
 
 /* Kill up to this many victims per reclaim */
 #define MAX_VICTIMS 1024
 
 /* Timeout in jiffies for each reclaim */
 static unsigned short slmk_timeout __read_mostly = CONFIG_ANDROID_SIMPLE_LMK_TIMEOUT_MSEC;
-module_param(slmk_timeout, short, 0644);
 #define RECLAIM_EXPIRES msecs_to_jiffies(slmk_timeout)
+
+/* Memory pressure level at which reclaim is triggered */
+static unsigned short slmk_vmpressure __read_mostly = 95;
 
 struct victim_info {
 	struct task_struct *tsk;
@@ -466,9 +476,6 @@ void simple_lmk_mm_freed(struct mm_struct *mm)
 	read_unlock(&mm_free_lock);
 }
 
-static unsigned short slmk_vmpressure __read_mostly = 95;
-module_param(slmk_vmpressure, short, 0644);
-
 static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
 				    unsigned long pressure, void *data)
 {
@@ -487,22 +494,75 @@ static struct notifier_block vmpressure_notif = {
 	.priority = INT_MAX
 };
 
+#define SLMK_PROC_ATTR(_name, _var, _min, _max)				\
+static int slmk_##_name##_show(struct seq_file *m, void *v)		\
+{									\
+	seq_printf(m, "%hu\n", READ_ONCE(_var));			\
+	return 0;							\
+}									\
+									\
+static int slmk_##_name##_open(struct inode *inode, struct file *file)	\
+{									\
+	return single_open(file, slmk_##_name##_show, NULL);		\
+}									\
+									\
+static ssize_t slmk_##_name##_write(struct file *file,			\
+				    const char __user *buf, size_t count,	\
+				    loff_t *ppos)			\
+{									\
+	unsigned short val;						\
+	int ret;							\
+									\
+	ret = kstrtou16_from_user(buf, count, 0, &val);			\
+	if (ret)							\
+		return ret;						\
+	if (val < (_min) || val > (_max))				\
+		return -EINVAL;						\
+	WRITE_ONCE(_var, val);						\
+	return count;							\
+}									\
+									\
+static const struct file_operations slmk_##_name##_fops = {		\
+	.owner = THIS_MODULE,						\
+	.open = slmk_##_name##_open,					\
+	.read = seq_read,						\
+	.write = slmk_##_name##_write,					\
+	.llseek = seq_lseek,						\
+	.release = single_release,					\
+}
+
+SLMK_PROC_ATTR(minfree, slmk_minfree, 8, 512);
+SLMK_PROC_ATTR(timeout, slmk_timeout, 50, 1000);
+SLMK_PROC_ATTR(vmpressure, slmk_vmpressure, 1, 100);
+
+static int __init simple_lmk_proc_init(void)
+{
+	struct proc_dir_entry *dir;
+
+	dir = proc_mkdir("simple_lmk", NULL);
+	if (!dir)
+		return -ENOMEM;
+
+	if (!proc_create("minfree", 0644, dir, &slmk_minfree_fops) ||
+	    !proc_create("timeout", 0644, dir, &slmk_timeout_fops) ||
+	    !proc_create("vmpressure", 0644, dir, &slmk_vmpressure_fops)) {
+		remove_proc_subtree("simple_lmk", NULL);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+late_initcall(simple_lmk_proc_init);
+
 /* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
 static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 {
 	static atomic_t init_done = ATOMIC_INIT(0);
 	struct task_struct *thread;
-	unsigned long total_mb = 0;
+	unsigned long total_mb;
 
-	if (!atomic_cmpxchg(&init_done, 0, 1)) {
-		thread = kthread_run(simple_lmk_reaper_thread, NULL,
-				     "simple_lmkd_reaper");
-		BUG_ON(IS_ERR(thread));
-		thread = kthread_run(simple_lmk_reclaim_thread, NULL,
-				     "simple_lmkd");
-		BUG_ON(IS_ERR(thread));
-		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
-	}
+	if (atomic_cmpxchg(&init_done, 0, 1))
+		return 0;
 
 	total_mb = totalram_pages >> (20 - PAGE_SHIFT);
 	if (total_mb > 3072) {
@@ -510,13 +570,21 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 		slmk_minfree = 155;
 		slmk_timeout = 145;
 	} else {
-		// 3GB or lower
-		slmk_minfree = 256;
-		slmk_timeout = 200;
+		// 3GB or lower variant
+		slmk_minfree = 192;
+		slmk_timeout = 250;
+		slmk_vmpressure = 98;
 	}
 
-	pr_info_once("Detected %lu megabytes of device RAM, setting minfree to %hu with timeout of %hu\n",
-		total_mb, slmk_minfree, slmk_timeout);
+	thread = kthread_run(simple_lmk_reaper_thread, NULL,
+			     "simple_lmkd_reaper");
+	BUG_ON(IS_ERR(thread));
+	thread = kthread_run(simple_lmk_reclaim_thread, NULL, "simple_lmkd");
+	BUG_ON(IS_ERR(thread));
+	BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
+
+	pr_info("total:%lu MiB, timeout:%hu ms, minfree:%hu MiB\n",
+		total_mb, slmk_timeout, slmk_minfree);
 	return 0;
 }
 
