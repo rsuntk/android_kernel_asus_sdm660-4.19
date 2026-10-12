@@ -86,15 +86,49 @@ static unsigned int msm_cpufreq_get_freq(unsigned int cpu)
 	return clk_get_rate(cpu_clk[cpu]) / 1000;
 }
 
+/*
+ * Re-apply the current clock rate (rounded to a table entry) so that the
+ * frequency limit is always updated when a CPU of this policy comes up.
+ * Shared by ->init() and ->online().
+ */
+static int msm_cpufreq_set_initial_freq(struct cpufreq_policy *policy)
+{
+	struct cpufreq_frequency_table *table = policy->freq_table;
+	struct cpufreq_freqs freqs;
+	unsigned int cur_freq;
+	int index, ret;
+
+	cur_freq = clk_get_rate(cpu_clk[policy->cpu]) / 1000;
+
+	index = cpufreq_frequency_table_target(policy, cur_freq,
+					       CPUFREQ_RELATION_H);
+	if (index < 0)
+		return -EINVAL;
+
+	/*
+	 * Call set_cpu_freq unconditionally so that when cpu is set to
+	 * online, frequency limit will always be updated.
+	 */
+	freqs.old = policy->cur;
+	freqs.new = table[index].frequency;
+	cpufreq_freq_transition_begin(policy, &freqs);
+	ret = set_cpu_freq(policy, table[index].frequency);
+	cpufreq_freq_transition_end(policy, &freqs, ret);
+	if (ret)
+		return ret;
+	pr_debug("cpufreq: cpu%d init at %u switching to %d\n",
+			policy->cpu, cur_freq, table[index].frequency);
+	policy->cur = table[index].frequency;
+
+	return 0;
+}
+
 static int msm_cpufreq_init(struct cpufreq_policy *policy)
 {
-	unsigned int cur_freq;
-	int index;
-	int ret = 0;
+	int ret;
 	struct cpufreq_frequency_table *table =
 			per_cpu(freq_table, policy->cpu);
 	int cpu;
-	struct cpufreq_freqs freqs;
 
 	/*
 	 * In some SoC, some cores are clocked by same source, and their
@@ -119,29 +153,40 @@ static int msm_cpufreq_init(struct cpufreq_policy *policy)
 		return ret;
 	}
 
-	cur_freq = clk_get_rate(cpu_clk[policy->cpu])/1000;
-
-	index = cpufreq_frequency_table_target(policy, cur_freq,
-					       CPUFREQ_RELATION_H);
-	if (index < 0)
-		return -EINVAL;
-
-	/*
-	 * Call set_cpu_freq unconditionally so that when cpu is set to
-	 * online, frequency limit will always be updated.
-	 */
-	freqs.old = policy->cur;
-	freqs.new = table[index].frequency;
-	cpufreq_freq_transition_begin(policy, &freqs);
-	ret = set_cpu_freq(policy, table[index].frequency);
-	cpufreq_freq_transition_end(policy, &freqs, ret);
+	ret = msm_cpufreq_set_initial_freq(policy);
 	if (ret)
 		return ret;
-	pr_debug("cpufreq: cpu%d init at %d switching to %d\n",
-			policy->cpu, cur_freq, table[index].frequency);
-	policy->cur = table[index].frequency;
+
 	policy->dvfs_possible_from_any_cpu = true;
 
+	return 0;
+}
+
+/*
+ * Light-weight bring up: the policy (related_cpus, freq_table, ...) survived
+ * the previous ->offline(), only the clock rate has to be re-applied. The
+ * core restores policy->cpus from related_cpus after this returns.
+ */
+static int msm_cpufreq_online(struct cpufreq_policy *policy)
+{
+	return msm_cpufreq_set_initial_freq(policy);
+}
+
+/*
+ * Light-weight tear down. The CPU clocks are gated by the qcom_cpufreq_*
+ * hotplug callbacks below, so there is nothing to do here.
+ */
+static int msm_cpufreq_offline(struct cpufreq_policy *policy)
+{
+	return 0;
+}
+
+/*
+ * Full tear down. Mandatory once ->offline() is provided: the core calls
+ * ->exit() unconditionally from cpufreq_remove_dev() in that case.
+ */
+static int msm_cpufreq_exit(struct cpufreq_policy *policy)
+{
 	return 0;
 }
 
@@ -302,6 +347,9 @@ static struct cpufreq_driver msm_cpufreq_driver = {
 	/* lps calculations are handled here. */
 	.flags		= CPUFREQ_CONST_LOOPS | CPUFREQ_NEED_INITIAL_FREQ_CHECK,
 	.init		= msm_cpufreq_init,
+	.online		= msm_cpufreq_online,
+	.offline	= msm_cpufreq_offline,
+	.exit		= msm_cpufreq_exit,
 	.verify		= cpufreq_generic_frequency_table_verify,
 	.target_index	= msm_cpufreq_target_index,
 	.get		= msm_cpufreq_get_freq,
