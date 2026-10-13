@@ -4573,7 +4573,7 @@ static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
 		 * and we are migrating task out of the CPU.
 		 */
 		detach_entity_load_avg(cfs_rq, se);
-		update_tg_load_avg(cfs_rq, 0);
+		update_tg_load_avg(cfs_rq);
 	} else if (decayed) {
 		if (flags & UPDATE_TG)
 			update_tg_load_avg(cfs_rq);
@@ -9277,7 +9277,7 @@ static inline int migrate_degrades_locality(struct task_struct *p,
  * Check whether the task is ineligible on the destination cpu
  *
  * When the PLACE_LAG scheduling feature is enabled and
- * dst_cfs_rq->nr_running is greater than 1, if the task
+ * dst_cfs_rq->nr_queued is greater than 1, if the task
  * is ineligible, it will also be ineligible when
  * it is migrated to the destination cpu.
  */
@@ -11408,9 +11408,9 @@ more_balance:
 		update_rq_clock(busiest);
 
 		if (!env.loop_max)
-			env.loop_max  = min(sysctl_sched_nr_migrate, busiest->cfs.h_nr_running);
+			env.loop_max  = min(sysctl_sched_nr_migrate, busiest->cfs.h_nr_queued);
 		else
-			env.loop_max  = min(env.loop_max, busiest->cfs.h_nr_running);
+			env.loop_max  = min(env.loop_max, busiest->cfs.h_nr_queued);
 
 		/*
 		 * cur_ld_moved - load moved in current iteration
