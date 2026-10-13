@@ -20,7 +20,7 @@
 	cam_sensor_eldo3 {
 		cam_sensor_eldo3_default: cam_sensor_eldo3_default {
 			pins = "gpio3";
-			function = "normal";
+			function = "gpio";
 			output-high;
 			bias-disable;
 		};
@@ -29,7 +29,7 @@
 	cam_sensor_eldo4 {
 		cam_sensor_eldo4_default: cam_sensor_eldo4_default {
 			pins = "gpio4";
-			function = "normal";
+			function = "gpio";
 			output-low;
 			bias-disable;
 		};
