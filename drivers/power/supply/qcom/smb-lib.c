@@ -2423,6 +2423,9 @@ int smblib_rerun_aicl(struct smb_charger *chg)
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	if (const_icl_enable) {
 		vote(chg->usb_icl_votable, AICL_RERUN_VOTER, true, CONST_ICL_UA);
+#ifdef CONFIG_MACH_ASUS_SDM660
+		asus_smblib_rerun_aicl(chg);
+#endif
 	} else {
 #endif
 	rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
@@ -3924,6 +3927,7 @@ static int jeita_status_regs_write(u8 chg_en, u8 FV_CFG, u8 FCC)
 }
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
+#define AICL_WATCHDOG_MIN_UA	1500000
 void jeita_rule(struct smb_charger *chg)
 #else
 void jeita_rule(void)
@@ -4002,8 +4006,26 @@ void jeita_rule(void)
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 	if (const_icl_enable) {
+		int settled_ua = 0;
+		static int aicl_low_cnt;
+
 		vote(chg->usb_icl_votable, FORCE_FAST_CHARGE_VOTER,
 			true, CONST_ICL_UA);
+
+		rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
+					&settled_ua);
+		if (rc >= 0 && settled_ua > 0 &&
+				settled_ua < AICL_WATCHDOG_MIN_UA &&
+				bat_capacity < 100) {
+			if (++aicl_low_cnt >= 2) {
+				printk("%s: AICL settled low (%d uA), rerun\n",
+					__func__, settled_ua);
+				asus_smblib_rerun_aicl(chg);
+				aicl_low_cnt = 0;
+			}
+		} else {
+			aicl_low_cnt = 0;
+		}
 	}
 #endif
 
@@ -5667,11 +5689,21 @@ irqreturn_t smblib_handle_switcher_power_ok(int irq, void *data)
 		/* This could be a weak charger reduce ICL */
 		if (!is_client_vote_enabled(chg->usb_icl_votable,
 						WEAK_CHARGER_VOTER)) {
+#ifdef CONFIG_FORCE_FAST_CHARGE
+			/* do not latch a 500mA clamp until unplug in forced mode */
+			if (const_icl_enable) {
+				smblib_err(chg,
+					"Weak charger detected: ignoring clamp (forced ICL)\n");
+			} else {
+#endif
 			smblib_err(chg,
 				"Weak charger detected: voting %dmA ICL\n",
 				*chg->weak_chg_icl_ua / 1000);
 			vote(chg->usb_icl_votable, WEAK_CHARGER_VOTER,
 					true, *chg->weak_chg_icl_ua);
+#ifdef CONFIG_FORCE_FAST_CHARGE
+			}
+#endif
 			/*
 			 * reset storm data and set the storm threshold
 			 * to 3 for reverse boost detection.
