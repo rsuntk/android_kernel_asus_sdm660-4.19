@@ -6494,7 +6494,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	int h_nr_runnable = 1;
 	int task_new = !(flags & ENQUEUE_WAKEUP);
 	bool prefer_idle = sched_feat(EAS_PREFER_IDLE) ?
-				(schedtune_prefer_idle(p) > 0) : 0;
+				(uclamp_latency_sensitive(p) > 0) : 0;
 	u64 slice = 0;
 
 	/*
@@ -6960,13 +6960,6 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p,
 	schedstat_inc(p->se.statistics.nr_wakeups_affine);
 	return target;
 }
-
-inline long
-schedtune_cpu_margin_with(unsigned long util, int cpu, struct task_struct *p)
-{
-	return 0;
-}
-
 
 static struct sched_group *
 find_idlest_group(struct sched_domain *sd, struct task_struct *p, int this_cpu);
@@ -7744,7 +7737,7 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 				 * Skip searching for active CPU for tasks have
 				 * prefer_high_cap.
 				 */
-				if (schedtune_prefer_high_cap(p))
+				if (uclamp_boosted(p))
 					continue;
 				/*
 				 * Case A.2: Target ACTIVE CPU
