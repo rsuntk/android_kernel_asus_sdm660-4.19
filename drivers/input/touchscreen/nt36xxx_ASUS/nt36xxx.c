@@ -560,7 +560,7 @@ static inline void nvt_ts_worker(struct work_struct *work)
 	uint32_t input_x;
 	uint32_t input_y;
 
-	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO / 2 };
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO / 2 };
 	sched_setscheduler(current, SCHED_RR, &param);
 
 	mutex_lock(&ts->lock);
