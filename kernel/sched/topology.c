@@ -1226,6 +1226,7 @@ static inline void asym_cpu_capacity_update_data(int cpu)
 	 * Search if capacity already exits. If not, track which the entry
 	 * where we should insert to keep the list ordered descendingly.
 	 */
+
 	list_for_each_entry(entry, &asym_cap_list, link) {
 		if (capacity == entry->capacity)
 			goto done;
@@ -1461,7 +1462,6 @@ sd_init(struct sched_domain_topology_level *tl,
 
 		.last_balance		= jiffies,
 		.balance_interval	= sd_weight,
-		.smt_gain		= 0,
 
 		/* 50% success rate */
 		.newidle_call		= 512,
@@ -1469,6 +1469,7 @@ sd_init(struct sched_domain_topology_level *tl,
 		.newidle_ratio		= 512,
 		.newidle_stamp		= now,
 
+		.smt_gain		= 0,
 		.max_newidle_lb_cost	= 0,
 		.last_decay_max_lb_cost	= jiffies,
 		.child			= child,
