@@ -123,29 +123,9 @@
 #define SCHED_FEAT_FIND_BEST_TARGET 0
 
 /*
- * Energy aware scheduling algorithm choices:
- * EAS_PREFER_IDLE
- *   Direct tasks in a schedtune.prefer_idle=1 group through
- *   the EAS path for wakeup task placement. Otherwise, put
- *   those tasks through the mainline slow path.
- */
-#define SCHED_FEAT_EAS_PREFER_IDLE 1
-
-/*
  * Request max frequency from schedutil whenever a RT task is running.
  */
 #define SCHED_FEAT_SUGOV_RT_MAX_FREQ 0
-
-/*
- * Apply schedtune boost hold to tasks of all sched classes.
- * If enabled, schedtune will hold the boost applied to a CPU
- * for 50ms regardless of task activation - if the task is
- * still running 50ms later, the boost hold expires and schedtune
- * boost will expire immediately the task stops.
- * If disabled, this behaviour will only apply to tasks of the
- * RT class.
- */
-#define SCHED_FEAT_SCHEDTUNE_BOOST_HOLD_ALL 0
 
 /*
  * Do newidle balancing proportional to its success rate using randomization.
