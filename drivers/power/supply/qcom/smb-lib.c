@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2020 The Linux Foundation. All rights reserved.
+/*
+ * Copyright (c) 2016-2020 The Linux Foundation. All rights reserved.
  */
 
 #include <linux/device.h>
@@ -21,6 +22,16 @@
 #ifdef CONFIG_MACH_ASUS_SDM660
 /* USB alert */
 #include <linux/iio/consumer.h>
+/*
+ * Undefine FG_ESR_VOTER and DEBUG_BOARD_VOTER to avoid -Wmacro-redefined
+ * Because these values are defined inside smb-lib.h first.
+ */
+#ifdef FG_ESR_VOTER
+#undef FG_ESR_VOTER
+#endif
+#ifdef DEBUG_BOARD_VOTER
+#undef DEBUG_BOARD_VOTER
+#endif
 /* Realize jeita */
 #include "fg-core.h"
 #include <linux/gpio.h>
