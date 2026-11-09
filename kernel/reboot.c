@@ -17,6 +17,15 @@
 #include <linux/syscore_ops.h>
 #include <linux/uaccess.h>
 
+/* rsuntk: Print utsrelease on reboot */
+#include <generated/utsrelease.h>
+#include <generated/compile.h>
+
+static void print_kern_info(void)
+{
+	pr_info("Device kernel: %s\n", UTS_RELEASE);
+}
+
 /*
  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
  */
@@ -244,6 +253,7 @@ void kernel_restart(char *cmd)
 	kernel_restart_prepare(cmd);
 	migrate_to_reboot_cpu();
 	syscore_shutdown();
+	print_kern_info();
 	if (!cmd)
 		pr_emerg("Restarting system\n");
 	else
