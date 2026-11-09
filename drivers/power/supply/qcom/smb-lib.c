@@ -47,14 +47,11 @@
 #define	START_REPORT_BAT_TEMPRATURE	620
 #endif
 
-static unsigned int forced_current = 2500;
+static unsigned int forced_current = 2000;
 module_param(forced_current, uint, S_IWUSR | S_IRUGO);
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 #include <linux/fastchg.h>
-static bool const_icl_enable = true;
-module_param(const_icl_enable, bool, 0644);
-#define CONST_ICL_UA 2500000
 #endif
 
 #define smblib_err(chg, fmt, ...)		\
@@ -2385,11 +2382,6 @@ int smblib_rerun_aicl(struct smb_charger *chg)
 		return rc;
 
 	smblib_dbg(chg, PR_MISC, "re-running AICL\n");
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	if (const_icl_enable) {
-		vote(chg->usb_icl_votable, AICL_RERUN_VOTER, true, CONST_ICL_UA);
-	} else {
-#endif
 	rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
 			&settled_icl_ua);
 	if (rc < 0) {
@@ -2401,10 +2393,6 @@ int smblib_rerun_aicl(struct smb_charger *chg)
 			max(settled_icl_ua - chg->param.usb_icl.step_u,
 				chg->param.usb_icl.step_u));
 	vote(chg->usb_icl_votable, AICL_RERUN_VOTER, false, 0);
-
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	}
-#endif
 
 	return 0;
 }
@@ -2886,16 +2874,7 @@ int smblib_get_prop_pd_allowed(struct smb_charger *chg,
 int smblib_get_prop_input_current_settled(struct smb_charger *chg,
 					  union power_supply_propval *val)
 {
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	if (const_icl_enable && asus_flow_processing) {
-		val->intval = CONST_ICL_UA;
-		return 0;
-	} else {
-#endif
 	return smblib_get_charge_param(chg, &chg->param.icl_stat, &val->intval);
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	}
-#endif
 }
 
 #define HVDCP3_STEP_UV	200000
@@ -3965,13 +3944,6 @@ void jeita_rule(void)
 		break;
 	}
 
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	if (const_icl_enable) {
-		vote(chg->usb_icl_votable, FORCE_FAST_CHARGE_VOTER,
-			true, CONST_ICL_UA);
-	}
-#endif
-
 	rc = jeita_status_regs_write(charging_enable, FV_CFG_reg_value, FCC_reg_value);
 	if (rc < 0)
 		printk("%s: Couldn't write jeita_status_register rc = %d\n", __func__, rc);
@@ -4601,9 +4573,6 @@ irqreturn_t smblib_handle_icl_change(int irq, void *data)
 					rc);
 			return IRQ_HANDLED;
 		}
-#ifdef CONFIG_FORCE_FAST_CHARGE
-		if (!const_icl_enable) {
-#endif
 		rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
 				&settled_ua);
 		if (rc < 0) {
@@ -4615,9 +4584,6 @@ irqreturn_t smblib_handle_icl_change(int irq, void *data)
 		if ((settled_ua == get_effective_result(chg->usb_icl_votable))
 				|| (stat & AICL_DONE_BIT))
 			delay = 0;
-#ifdef CONFIG_FORCE_FAST_CHARGE
-		}
-#endif
 
 		cancel_delayed_work_sync(&chg->icl_change_work);
 		schedule_delayed_work(&chg->icl_change_work,
@@ -6035,19 +6001,11 @@ static void smblib_icl_change_work(struct work_struct *work)
 							icl_change_work.work);
 	int rc, settled_ua;
 
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	if (const_icl_enable) {
-		settled_ua = CONST_ICL_UA;
-	} else {
-#endif
 	rc = smblib_get_charge_param(chg, &chg->param.icl_stat, &settled_ua);
 	if (rc < 0) {
 		smblib_err(chg, "Couldn't get ICL status rc=%d\n", rc);
 		return;
 	}
-#ifdef CONFIG_FORCE_FAST_CHARGE
-	}
-#endif
 
 	power_supply_changed(chg->usb_main_psy);
 
