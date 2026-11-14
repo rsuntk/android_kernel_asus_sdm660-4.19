@@ -572,13 +572,13 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 {
 	static atomic_t init_done = ATOMIC_INIT(0);
 	struct task_struct *thread;
-	unsigned long total_mb;
+	struct sysinfo i;
 
 	if (atomic_cmpxchg(&init_done, 0, 1))
 		return 0;
 
-	total_mb = totalram_pages >> (20 - PAGE_SHIFT);
-	if (total_mb > 3072) {
+	si_meminfo(&i);
+	if (i.totalram << (PAGE_SHIFT-10) > 4096ull * 1024) {
 		slmk_minfree = 80;
 		slmk_timeout = 145;
 	} else {
@@ -594,8 +594,6 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 	BUG_ON(IS_ERR(thread));
 	BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
 
-	pr_info("total:%lu MiB, timeout:%hu ms, minfree:%hu MiB\n",
-		total_mb, slmk_timeout, slmk_minfree);
 	return 0;
 }
 
