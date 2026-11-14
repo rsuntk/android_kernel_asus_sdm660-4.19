@@ -75,13 +75,15 @@ static void victim_swap(void *lhs_ptr, void *rhs_ptr, int size)
 
 static unsigned long get_total_mm_pages(struct mm_struct *mm)
 {
-	unsigned long pages = 0;
-	int i;
-
-	for (i = 0; i < NR_MM_COUNTERS; i++)
-		pages += get_mm_counter(mm, i);
-
-	return pages;
+	/*
+	 * Skip file pages. On Android they're mostly mappings of the framework,
+	 * ART images and shared libraries that every app shares with zygote, so
+	 * killing an app gives almost none of them back. Counting them makes
+	 * small apps look as large as big ones.
+	 */
+	return get_mm_counter(mm, MM_ANONPAGES) +
+	       get_mm_counter(mm, MM_SHMEMPAGES) +
+	       get_mm_counter(mm, MM_SWAPENTS);
 }
 
 static unsigned long find_victims(int *vindex)
@@ -566,12 +568,10 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 
 	total_mb = totalram_pages >> (20 - PAGE_SHIFT);
 	if (total_mb > 3072) {
-		// 4GB+ variant
-		slmk_minfree = 155;
+		slmk_minfree = 80;
 		slmk_timeout = 145;
 	} else {
-		// 3GB or lower variant
-		slmk_minfree = 192;
+		slmk_minfree = 48;
 		slmk_timeout = 250;
 		slmk_vmpressure = 98;
 	}
