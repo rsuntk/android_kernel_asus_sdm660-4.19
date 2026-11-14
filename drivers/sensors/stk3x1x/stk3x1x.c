@@ -2068,7 +2068,7 @@ static int stk_als_poll_delay_set(struct sensors_classdev *sensors_cdev,
 		container_of(sensors_cdev, struct stk3x1x_data, als_cdev);
 	uint64_t value = 0;
 
-	value = delay_msec * 1000000;
+	value = (u64)delay_msec * NSEC_PER_MSEC;
 
 	if (value < MIN_ALS_POLL_DELAY_NS)
 		value = MIN_ALS_POLL_DELAY_NS;
@@ -2515,7 +2515,7 @@ static int stk_ps_poll_delay_set(struct sensors_classdev *sensors_cdev,
 		container_of(sensors_cdev, struct stk3x1x_data, ps_cdev);
 	uint64_t value = 0;
 
-	value = delay_msec * 1000000;
+	value = (u64)delay_msec * NSEC_PER_MSEC;
 
 	if (value < 10)
 		value = 10;

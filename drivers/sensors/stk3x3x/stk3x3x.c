@@ -1460,7 +1460,7 @@ static int stk_als_poll_delay_set(struct sensors_classdev *sensors_cdev,
 		container_of(sensors_cdev, struct stk3x3x_data, als_cdev);
 	uint64_t value = 0;
 
-	value = delay_msec * 1000000;
+	value = (u64)delay_msec * NSEC_PER_MSEC;
 
 	if (value < MIN_ALS_POLL_DELAY_NS)
 		value = MIN_ALS_POLL_DELAY_NS;
@@ -1670,7 +1670,7 @@ static int stk_ps_poll_delay_set(struct sensors_classdev *sensors_cdev,
 		container_of(sensors_cdev, struct stk3x3x_data, ps_cdev);
 	uint64_t value = 0;
 
-	value = delay_msec * 1000000;
+	value = (u64)delay_msec * NSEC_PER_MSEC;
 
 	if (value < 10)
 		value = 10;
@@ -3661,6 +3661,7 @@ static int stk3x3x_probe(struct i2c_client *client,
 	sensors_light_cdev.min_delay = 0;
 #endif
 	ps_data->als_cdev.sensors_enable = stk_als_enable_set;
+	ps_data->als_cdev.sensors_poll_delay = stk_als_poll_delay_set;
 	err = sensors_classdev_register(&ps_data->als_input_dev->dev,
 					&ps_data->als_cdev);
 	if (err)
@@ -3668,6 +3669,7 @@ static int stk3x3x_probe(struct i2c_client *client,
 
 	ps_data->ps_cdev = sensors_proximity_cdev;
 	ps_data->ps_cdev.sensors_enable = stk_ps_enable_set;
+	ps_data->ps_cdev.sensors_poll_delay = stk_ps_poll_delay_set;
 	err = sensors_classdev_register(&ps_data->ps_input_dev->dev,
 					&ps_data->ps_cdev);
 	if (err)
