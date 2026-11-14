@@ -59,8 +59,6 @@ static int tcp_use_userconfig_max = 1;
 
 static int tcp_min_rcvbuf = 4096;
 
-static int tcp_min_rcvbuf = 4096;
-
 /* obsolete */
 static int sysctl_tcp_low_latency __read_mostly;
 
